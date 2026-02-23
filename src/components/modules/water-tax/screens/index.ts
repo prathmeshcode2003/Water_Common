@@ -1,33 +1,38 @@
 /**
- * Water Tax Citizen Portal - Screen Components
+ * Water Tax Screens - Server Components Index
  * 
- * This file exports all active screen components used in the citizen portal.
- * Each component is designed to be API-ready and production-grade.
- * 
- * Component Organization:
- * - Authentication Flow: LandingScreen → LoginScreen → OtpScreen → PropertySelectScreen
- * - Main Application: DashboardWrapper (wraps DashboardScreenNew)
- * 
- * Unused/Legacy components should be removed to maintain clean codebase.
+ * All post-login screens use SharedWrapper as the single client wrapper.
+ * Organized by screen folders for better maintainability.
  */
 
-// Authentication & Onboarding Screens
-export { LandingScreen } from './LandingScreen';
-export { LoginScreen } from './LoginScreen';
-export { OtpScreen } from './OtpScreen';
-export { PropertySelectScreen } from './PropertySelectScreen';
+// Landing Screen
+export { LandingScreenSSR } from './landing/LandingScreen.server';
 
-// Dashboard (Client-side wrapper for server components)
-export { DashboardWrapper } from './DashboardWrapper';
+// Login Screen
+export { LoginScreenSSR } from './login/LoginScreen.server';
 
-// Additional Portal Screens with Wrappers
-export { PassbookWrapper } from './PassbookWrapper';
-export { MeterReadingWrapper } from './MeterReadingWrapper';
-export { GrievancesWrapper } from './GrievancesWrapper';
-export { BillCalculatorWrapper } from './BillCalculatorWrapper';
+// OTP Screen
+export { OtpScreenSSR } from './otp/OtpScreen.server';
 
-// Navigation Components
-export { default as CivicRibbon } from './CivicRibbon';
+// Dashboard Screen (server-side data preparation → SharedWrapper)
+export { DashboardScreenSSR } from './dashboard/DashboardScreen.server';
 
-// Core Dashboard Component (used internally by DashboardWrapper)
-export { DashboardScreen } from './DashboardScreenNew';
+// Passbook Screen (server-side user pass-through → SharedWrapper)
+export { PassbookScreenSSR } from './passbook/PassbookScreen.server';
+
+// Grievances Screen (→ SharedWrapper)
+export { GrievancesScreenSSR } from './grievances/GrievancesScreen.server';
+
+// Calculator Screen (→ SharedWrapper)
+export { BillCalculatorScreenSSR } from './bill-calculator/CalculatorScreen.server';
+
+// Landing Hero (used by LandingScreen)
+export { LandingHero } from './landing/LandingHero';
+
+// Re-export existing screens (for backward compatibility)
+export { LandingScreen } from './landing/LandingScreen';
+export { LoginScreen } from './login/LoginScreen';
+export { OtpScreen } from './otp/OtpScreen';
+
+// SharedWrapper export for direct usage
+export { SharedWrapper } from './SharedWrapper';

@@ -1,15 +1,13 @@
 export { CitizenPortalLayout } from "@/components/layout/citizen/CitizenPortalLayout";
 
 // Active screens used in the application
-export { LandingScreen } from "./screens/LandingScreen";
-export { LoginScreen } from "./screens/LoginScreen";
-export { OtpScreen } from "./screens/OtpScreen";
-export { PropertySelectScreen } from "./screens/PropertySelectScreen";
-export { DashboardWrapper } from "./screens/DashboardWrapper";
-export { PassbookWrapper } from "./screens/PassbookWrapper";
-export { BillCalculatorWrapper } from "./screens/BillCalculatorWrapper";
-export { GrievancesWrapper } from "./screens/GrievancesWrapper";
-export { MeterReadingWrapper } from "./screens/MeterReadingWrapper";
+export { default as LandingScreen } from "./screens/landing/LandingScreen";
+export { default as LoginScreen } from "./screens/login/LoginScreen";
+export { default as OtpScreen } from "./screens/otp/OtpScreen";
+export { PropertySelectScreen } from "./screens/shared/PropertySelectScreen";
 
-// Main dashboard component (used via DashboardWrapper)
-export { DashboardScreen } from "./screens/DashboardScreenNew";
+// Single wrapper for all post-login screens
+export { SharedWrapper } from "./screens/SharedWrapper";
+
+// Main dashboard component (used via SharedWrapper)
+export { DashboardScreen } from "./screens/dashboard/DashboardScreenNew";

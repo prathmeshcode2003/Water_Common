@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
 
@@ -7,11 +8,10 @@ import { X } from "lucide-react";
 
 export interface DialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
 }
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({ open, children }: DialogProps) {
   // Prevent background scroll when dialog is open
   useEffect(() => {
     if (open) {

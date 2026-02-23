@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect } from "react";
+'use client';  
+import React, { useRef, useEffect } from "react";
 
 
 export interface PopoverProps {

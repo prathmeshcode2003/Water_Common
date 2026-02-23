@@ -1,3 +1,4 @@
+'use client';
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { WaterPortalBranding } from "@/types/water-tax.types";
@@ -11,25 +12,29 @@ import {
 } from "@/components/common/Water.Citizen/Popover";
 import { Avatar, AvatarFallback } from "@/components/common/Water.Citizen/Avatar";
 import { Bell, X, Clock, ArrowRight, LogOut, Building, MapPin, User, Mail } from "lucide-react";
-import { Button } from "@/components/common/Water.Citizen/Button";
-import { useEffect, useState } from "react";
+import { Button } from "@/components/common/Button";
+import { useEffect, useState, useCallback } from "react";
 export function CitizenPortalLayout({
   branding,
   children,
   showPortalButtons = true,
+  user: userProp = null,
 }: {
   branding: WaterPortalBranding;
   children: ReactNode;
   // showPortalButtons: controls visibility of 'Officer Login' and 'Citizen Portal'
   showPortalButtons?: boolean;
+  user?: any | null;
 }) {
-  // --- Get user from sessionStorage if available, else fallback to empty object ---
-  let user: any = {};
-  if (typeof window !== "undefined") {
+  // --- Get user from prop (server) or sessionStorage (client fallback) ---
+  let user: any = userProp;
+
+  // Only use sessionStorage if no user prop is provided
+  if (!user && typeof window !== "undefined") {
     try {
       const stored = window.sessionStorage.getItem("waterTaxSelectedConsumer");
       if (stored) user = JSON.parse(stored);
-    } catch {}
+    } catch { }
   }
 
   // Fallback for SSR/initial render (will be hydrated on client)
@@ -42,52 +47,85 @@ export function CitizenPortalLayout({
     email: "",
   };
 
-  // Static notifications (or fetch from session if you store them)
-  // const notifications = [
-  //   {
-  //     id: "1",
-  //     title: "Bill Payment Successful",
-  //     message: "You paid ₹982 for WC-2025-002.",
-  //     time: "2 hours ago",
-  //     read: false,
-  //     color: "bg-green-100",
-  //     icon: Bell,
-  //   },
-  //   {
-  //     id: "2",
-  //     title: "New Bill Generated",
-  //     message: "Bill #BILL-2025-001 - ₹1,275 is due.",
-  //     time: "3 days ago",
-  //     read: true,
-  //     color: "bg-orange-100",
-  //     icon: Bell,
-  //   },
-  // ];
-  // const unreadCount = notifications.filter((n) => !n.read).length;
-
   // Notification handlers (static, no API)
-  const markAllAsRead = () => {};
-  const deleteNotification = (_id: string) => {};
-  const handleNotificationClick = (_notification: any) => {};
+  const markAllAsRead = () => { };
+  const deleteNotification = (_id: string) => { };
+  const handleNotificationClick = (_notification: any) => { };
 
-  // Helper: detect if we are on landing, login, or otp screen
-  const isPublicScreen = (() => {
-    // If children is a React element, check its type name
-    if (
-      children &&
-      typeof children === "object" &&
-      "type" in children &&
-      typeof children.type === "function"
-    ) {
-      const typeName = children.type.name;
-      return (
-        typeName === "LandingScreen" ||
-        typeName === "LoginScreen" ||
-        typeName === "OtpScreen"
-      );
+  // ---- Reactive isLoggedIn state ----
+  // Use state so the header re-renders when session is cleared
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check login status on mount and whenever userProp changes
+    const checkLoginStatus = () => {
+      // First check prop-based user
+      if (userProp && userProp.consumerNameEnglish) {
+        setIsLoggedIn(true);
+        return;
+      }
+      // Then check sessionStorage fallback
+      if (typeof window !== "undefined") {
+        try {
+          const stored = window.sessionStorage.getItem("waterTaxSelectedConsumer");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setIsLoggedIn(!!(parsed && parsed.consumerNameEnglish));
+            return;
+          }
+        } catch { }
+      }
+      setIsLoggedIn(false);
+    };
+
+    checkLoginStatus();
+  }, [userProp]);
+
+  // ---- Logout handler: clears everything ----
+  const handleLogout = useCallback(async () => {
+    try {
+      // 1. Clear ALL sessionStorage keys related to water tax
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("waterTaxConsumers");
+        window.sessionStorage.removeItem("waterTaxSelectedConsumer");
+        window.sessionStorage.removeItem("waterTaxSession");
+        window.sessionStorage.removeItem("waterTaxOtpQuery");
+      }
+
+      // 2. Clear the session cookie from the browser
+      if (typeof document !== "undefined") {
+        document.cookie = "wt_citizen_session_id=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "waterTaxOtp=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "waterTaxOtpQuery=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      }
+
+      // 3. Update local state immediately so the header hides user info
+      setIsLoggedIn(false);
+
+      // 4. Call the server action to destroy the server-side session
+      //    We use dynamic import to avoid issues in non-server contexts
+      try {
+        const { clearCitizenSession } = await import("@/app/[locale]/water-tax/actions");
+        await clearCitizenSession();
+      } catch {
+        // clearCitizenSession does a redirect itself, but if it fails
+        // we fall through to the manual redirect below
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
     }
-    return false;
-  })();
+
+    // 5. Hard redirect to login page (full page reload to clear any cached state)
+    if (typeof window !== "undefined") {
+      window.location.href = "/water-tax/citizen?view=login";
+    }
+  }, []);
+
+  // Debug logging (remove in production)
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('🔍 CitizenPortalLayout - isLoggedIn:', isLoggedIn);
+    console.log('🔍 CitizenPortalLayout - user:', user);
+  }
 
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden"> {/* h-screen and overflow-hidden */}
@@ -105,10 +143,10 @@ export function CitizenPortalLayout({
               </div>
             </div>
 
-            {/* --- Show user header after login, not on landing/login/otp screens --- */}
-            {!isPublicScreen && (
+            {/* --- Show user header ONLY when logged in (after OTP verification) --- */}
+            {isLoggedIn && (
               <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
-                
+
                 {/* User Profile */}
                 <Popover>
                   <PopoverTrigger asChild>
@@ -128,8 +166,8 @@ export function CitizenPortalLayout({
                       </div>
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-80 sm:w-96 p-0 mr-2 sm:mr-4" 
+                  <PopoverContent
+                    className="w-80 sm:w-96 p-0 mr-2 sm:mr-4"
                     align="end"
                   >
                     <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50">
@@ -195,8 +233,8 @@ export function CitizenPortalLayout({
                           </div>
                           {/* Email */}
                           <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-100 shadow-sm hover:shadow transition-shadow">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center flex-shrink-0 ">
-                            <Mail className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center flex-shrink-0 ">
+                              <Mail className="w-4 h-4 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[10px] text-gray-500">Email</p>
@@ -215,9 +253,7 @@ export function CitizenPortalLayout({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    window.location.href = "/water-tax/citizen?view=login";
-                  }}
+                  onClick={handleLogout}
                   className="flex items-center gap-2 sm:gap-3 px-2 py-1.5 sm:px-3 sm:py-2 bg-white/20 backdrop-blur-sm rounded-lg cursor-pointer hover:bg-white/30 transition-colors border border-white/30"
                 >
                   <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2 text-white" />
@@ -226,7 +262,7 @@ export function CitizenPortalLayout({
               </div>
             )}
             {/* ...existing code for landing/login/otp header buttons... */}
-            {isPublicScreen && (
+            {!isLoggedIn && (
               <div className="flex items-center gap-4">
                 {/* ...existing code... */}
                 {showPortalButtons && (
@@ -241,7 +277,7 @@ export function CitizenPortalLayout({
                       href="/water-tax/citizen?view=login"
                       className="hidden sm:inline-flex items-center justify-center rounded-xl bg-white text-[#005AA7] hover:bg-white/90 shadow-lg font-semibold px-4 py-2"
                     >
-                      <Phone className="w-4 h-4 mr-2" />
+
                       Citizen Portal
                     </Link>
                   </>
@@ -252,7 +288,7 @@ export function CitizenPortalLayout({
         </div>
       </nav>
 
-      {/* Mobile controls: show status + portal buttons on small screens */}
+      {/* Mobile controls: show status + portal buttons on small screens (only when not logged in) */}
       <div className="md:hidden bg-gradient-to-r from-[#005AA7] via-[#0077B6] to-[#00C6FF] border-b border-blue-400/20 flex-shrink-0">
         <div className="w-full px-4 py-3">
           <div className="flex items-center justify-between gap-3">
@@ -262,7 +298,8 @@ export function CitizenPortalLayout({
               </Badge>
             </div>
 
-            {showPortalButtons && (
+            {/* Only show portal buttons when NOT logged in */}
+            {!isLoggedIn && showPortalButtons && (
               <div className="flex items-center gap-2">
                 <Link
                   href="/water-tax/officer"

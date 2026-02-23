@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Input } from "@/components/common/Water.Citizen";
+import { Input } from "@/components/common";
 
 interface OtpInputBoxesProps {
     onComplete: (otp: string) => void;

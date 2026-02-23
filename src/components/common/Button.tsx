@@ -10,7 +10,9 @@ export type ButtonVariant =
   | "secondary" 
   | "ghost" 
   | "danger" 
-  | "success";
+  | "success"
+  | "default"
+  | "outline"; // Added variants from Water.Citizen
 
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
@@ -40,7 +42,7 @@ export function Button({
     sm: "h-8 px-3 text-sm gap-2",
     md: "h-10 px-4 text-sm gap-2",
     lg: "h-12 px-6 text-base gap-2.5",
-  };
+  }; // Sizes already compatible, no changes needed.
 
   const iconSizes: Record<ButtonSize, string> = {
     xs: "w-3 h-3",
@@ -55,6 +57,8 @@ export function Button({
     ghost: "text-gray-600 hover:bg-gray-100",
     danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
     success: "bg-green-600 text-white hover:bg-green-700 shadow-sm",
+    default: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500", // From Water.Citizen
+    outline: "border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500", // From Water.Citizen
   };
 
   return (

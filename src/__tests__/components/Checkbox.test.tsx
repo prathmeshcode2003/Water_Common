@@ -1,33 +1,34 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Checkbox } from '@/components/common/Water.Citizen/Checkbox';
+import { render, screen, fireEvent } from "@testing-library/react";
+import { Checkbox } from "../../components/common/Water.Citizen/Checkbox";
 
-describe('Checkbox Component', () => {
-  it('renders checkbox', () => {
+describe("Checkbox Component", () => {
+  it("renders with default props", () => {
     render(<Checkbox />);
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
+    const checkbox = screen.getByRole("checkbox");
+    expect(checkbox).toBeInTheDocument();
   });
 
-  it('handles change events', () => {
-    const handleChange = vi.fn();
-    render(<Checkbox onCheckedChange={handleChange} />);
-    const checkbox = screen.getByRole('checkbox');
+  it("toggles checked state on click", () => {
+    const handleChange = jest.fn();
+    render(<Checkbox onChange={handleChange} />);
+    const checkbox = screen.getByRole("checkbox");
+
     fireEvent.click(checkbox);
-    expect(handleChange).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalledWith(true);
+
+    fireEvent.click(checkbox);
+    expect(handleChange).toHaveBeenCalledWith(false);
   });
 
-  it('can be checked', () => {
-    render(<Checkbox checked />);
-    expect(screen.getByRole('checkbox')).toHaveAttribute('aria-checked', 'true');
+  it("applies the correct size classes", () => {
+    render(<Checkbox size="lg" />);
+    const checkbox = screen.getByRole("checkbox");
+    expect(checkbox).toHaveClass("h-6 w-6");
   });
 
-  it('can be disabled', () => {
-    render(<Checkbox disabled />);
-    expect(screen.getByRole('checkbox')).toBeDisabled();
-  });
-
-  it('applies custom className', () => {
-    render(<Checkbox className="custom-class" />);
-    expect(screen.getByRole('checkbox')).toHaveClass('custom-class');
+  it("applies the correct variant classes", () => {
+    render(<Checkbox variant="outline" />);
+    const checkbox = screen.getByRole("checkbox");
+    expect(checkbox).toHaveClass("border-2 border-gray-500");
   });
 });
