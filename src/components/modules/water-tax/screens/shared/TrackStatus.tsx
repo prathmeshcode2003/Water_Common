@@ -474,13 +474,12 @@ export function TrackStatus({ open, onOpenChange, initialId = '' }: TrackStatusP
         </div>
       }
     >
-
-        <div className="flex-1 overflow-y-auto space-y-4 p-6">
-          {/* Search Section */}
-          <Card className="p-4 bg-white/80 backdrop-blur-sm border-blue-200">
-            <div className="space-y-3">
-              <div>
-                <div className="flex gap-2">
+      {/* Search Section */}
+      <div className="p-6 pb-4 bg-white border-b border-gray-100">
+        <Card className="p-4 bg-white/80 backdrop-blur-sm border-blue-200">
+          <div className="space-y-3">
+            <div>
+              <div className="flex gap-2">
                   <Input
                     placeholder="APP-2025-XXX, WNC-2025-XXX or GRV-2025-XXX"
                     value={trackingId}
@@ -537,8 +536,10 @@ export function TrackStatus({ open, onOpenChange, initialId = '' }: TrackStatusP
               </div>
             </div>
           </Card>
+        </div>
 
-          {/* Results */}
+        {/* Results Section */}
+        <div className="p-6 pt-4">
           <AnimatePresence mode="wait">
             {trackingData && (
               <motion.div

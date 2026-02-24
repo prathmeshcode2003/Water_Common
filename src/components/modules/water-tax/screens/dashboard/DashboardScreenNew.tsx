@@ -36,6 +36,8 @@ import { clearCitizenSession } from "@/app/[locale]/water-tax/actions";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/common/Water.Citizen/Dialog";
 import { NewConnectionFormContent } from "@/components/modules/water-tax/screens/shared/NewConnectionForm";
+import { TrackStatus } from "@/components/modules/water-tax/screens/shared/TrackStatus";
+import { NewGrievanceForm } from "@/components/modules/water-tax/screens/grievances/NewGrievanceForm";
 
 // Dummy components for tabs (replace with actual implementations)
 const MyConnections = () => <div>MyConnections Component</div>;
@@ -236,6 +238,8 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
   const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
   const [selectedUsageConnection, setSelectedUsageConnection] = useState<string>("all");
   const [showNewConnectionDialog, setShowNewConnectionDialog] = useState(false);
+  const [showTrackStatusDrawer, setShowTrackStatusDrawer] = useState(false);
+  const [showNewGrievanceForm, setShowNewGrievanceForm] = useState(false);
 
   const router = useRouter();
 
@@ -314,13 +318,13 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
       label: "Track Status",
       icon: Activity,
       color: "from-blue-500 to-blue-500",
-      action: () => { }, // Add your handler
+      action: () => setShowTrackStatusDrawer(true),
     },
     {
       label: "Raise Complaints",
       icon: MessageSquare,
       color: "from-blue-500 to-blue-500",
-      action: () => { }, // Add your handler
+      action: () => setShowNewGrievanceForm(true),
     },
   ];
 
@@ -871,6 +875,22 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
           />
         </DialogContent>
       </Dialog>
+
+      {/* Track Status Drawer */}
+      <TrackStatus 
+        open={showTrackStatusDrawer}
+        onOpenChange={setShowTrackStatusDrawer}
+      />
+
+      {/* New Grievance Form */}
+      <NewGrievanceForm
+        open={showNewGrievanceForm}
+        onClose={() => setShowNewGrievanceForm(false)}
+        onSubmit={(data) => {
+          console.log("New grievance registered:", data);
+          setShowNewGrievanceForm(false);
+        }}
+      />
     </main>
   );
 }
