@@ -261,7 +261,7 @@ export function CitizenPortalLayout({
                 </Button>
               </div>
             )}
-            {/* ...existing code for landing/login/otp header buttons... */}
+            
             {!isLoggedIn && (
               <div className="flex items-center gap-4">
                 {/* ...existing code... */}

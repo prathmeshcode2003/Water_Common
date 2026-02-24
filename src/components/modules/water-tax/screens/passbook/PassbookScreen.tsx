@@ -375,13 +375,13 @@ export function PassbookScreen({ user, onNavigate }: PassbookScreenProps) {
                     Category
                   </label>
                   <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-700 border border-purple-300 font-semibold">
-                    {consumerData?.categoryName || "-"}
+                    {consumerData?.connectionCategoryName || "-"}
                   </span>
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 flex items-center gap-1">Pipe Size</label>
                   <p className="text-sm text-gray-900 font-semibold">
-                    {consumerData?.pipeSize || "-"}
+                    {consumerData?.pipeSizeName || "-"}
                   </p>
                 </div>
                 <div>

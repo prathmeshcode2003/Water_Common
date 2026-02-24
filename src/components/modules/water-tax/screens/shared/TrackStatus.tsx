@@ -12,13 +12,7 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Card } from "@/components/common/Card";
 import { Badge } from '@/components/common/Water.Citizen/Badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/common/Water.Citizen/Dialog';
+import { Drawer } from '@/components/common/Drawer';
 import { toast } from 'sonner';
 
 interface TrackStatusProps {
@@ -464,21 +458,24 @@ export function TrackStatus({ open, onOpenChange, initialId = '' }: TrackStatusP
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-cyan-50">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <Search className="w-4 h-4 text-white" />
-            </div>
-            Track Application / Grievance Status
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Enter your Application ID or Grievance ID to track status
-          </DialogDescription>
-        </DialogHeader>
+    <Drawer 
+      open={open} 
+      onClose={() => onOpenChange(false)}
+      width="xl"
+      title={
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+            <Search className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Track Status</h2>
+            <p className="text-sm text-gray-600">Track your Application or Grievance</p>
+          </div>
+        </div>
+      }
+    >
 
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 p-6">
           {/* Search Section */}
           <Card className="p-4 bg-white/80 backdrop-blur-sm border-blue-200">
             <div className="space-y-3">
@@ -754,7 +751,6 @@ export function TrackStatus({ open, onOpenChange, initialId = '' }: TrackStatusP
             </Card>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </Drawer>
   );
 }
