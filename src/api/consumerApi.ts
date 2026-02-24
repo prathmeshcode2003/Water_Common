@@ -16,7 +16,7 @@ function detectQueryType(query: string) {
 }
 
 function buildApiUrl(query: string): string {
-    const baseUrl = "https://localhost:7293/api/ConsumerMast";
+    const baseUrl = "http://localhost:5268/api/CitizenLogin";
     const queryType = detectQueryType(query);
     const cleanQuery = query.trim();
     
