@@ -13,9 +13,10 @@ import {
 import { Card } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
 import { Button } from "@/components/common/Button";
-import  CivicRibbon  from "@/components/modules/water-tax/screens/shared/CivicRibbon"; // Import CivicRibbon
+import { Drawer } from "@/components/common";
+import CivicRibbon from "@/components/modules/water-tax/screens/shared/CivicRibbon";
 import { toast } from "sonner";
-import  { BillCalculatorMobileView }  from "./BillCalculatorMobileView";
+import { BillCalculatorMobileView } from "./BillCalculatorMobileView";
 interface BillCalculatorScreenProps {
   onNavigate: (screen: string) => void;
   ratesConfig?: RateConfig[];
@@ -31,7 +32,7 @@ interface RateConfig {
 }
 
 export function BillCalculatorScreen({ onNavigate, ratesConfig: propRatesConfig }: BillCalculatorScreenProps) {
-  const router = useRouter(); // Initialize router for navigation
+  const router = useRouter();
   const [connectionType, setConnectionType] = useState("");
   const [isMeter, setIsMeter] = useState(true);
   const [connectionSize, setConnectionSize] = useState("");
@@ -43,6 +44,7 @@ export function BillCalculatorScreen({ onNavigate, ratesConfig: propRatesConfig 
   const [showResult, setShowResult] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ratesConfig, setRatesConfig] = useState<RateConfig[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // TODO: Replace with actual API call to fetch corporation-specific rates
   useEffect(() => {
@@ -202,198 +204,198 @@ export function BillCalculatorScreen({ onNavigate, ratesConfig: propRatesConfig 
         <BillCalculatorMobileView onNavigate={onNavigate} ratesConfig={ratesConfig} />
       </div>
 
-      {/* Desktop View - Centered and No Scroll */}
-      <div className="hidden lg:flex items-center justify-center h-fit bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 overflow-hidden pt-20 pb-15">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl w-full"
+      {/* Desktop View - Button to open Drawer */}
+      <div className="hidden lg:flex items-center justify-end h-fit bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 overflow-hidden pt-20 pb-15 pr-10">
+        <Button
+          onClick={() => setDrawerOpen(true)}
+          className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg font-semibold"
         >
-          {/* Calculator Card */}
-          <Card className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 border-2 border-cyan-300 shadow-2xl">
-            <div className="p-3 sm:p-4 md:p-6">
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 border-b-2 border-cyan-200 pb-3 sm:pb-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
-                  <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-xl font-bold text-gray-900">Calculate Water Tax</h2>
-                  <p className="text-[10px] sm:text-xs text-gray-600">Enter connection details to estimate your water bill</p>
-                </div>
-              </div>
+          <Calculator className="w-5 h-5 mr-2" />
+          Open Bill Calculator
+        </Button>
+        <Drawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          title={
+            <div className="flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-blue-600" />
+              <span className="font-bold text-lg">Calculate Water Tax</span>
+            </div>
+          }
+          width="md"
+        >
+          <div className="p-3 sm:p-4 md:p-6">
+            <div className="space-y-3 sm:space-y-4">
+              {/* Calculator Input Form */}
+              <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-5 border-2 border-blue-300 shadow-xl">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Connection Type - Dynamic from API */}
+                  <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+                    <label className="text-sm text-gray-800 mb-2 block flex items-center gap-2 font-semibold">
+                      <Droplet className="w-4 h-4 text-blue-600" />
+                      Connection Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={connectionType}
+                      onChange={(e) => setConnectionType(e.target.value)}
+                      className="w-full h-11 border-2 border-gray-300 bg-white hover:border-gray-400 transition-colors shadow-sm rounded-md px-3"
+                      disabled={ratesConfig.length === 0}
+                    >
+                      <option value="">Select Type</option>
+                      {ratesConfig.map((config) => (
+                        <option key={config.connectionType} value={config.connectionType}>
+                          {config.icon} {config.label}
+                        </option>
+                      ))}
+                    </select>
+                    {connectionType && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Rate: ₹{getRateByConnectionType(connectionType)}/unit (Meter) | ₹{getFixedRateByConnectionType(connectionType)}/month (Fixed)
+                      </p>
+                    )}
+                  </div>
 
-              <div className="space-y-3 sm:space-y-4">
-                {/* Calculator Input Form */}
-                <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-5 border-2 border-blue-300 shadow-xl">
-                  <div className="space-y-3 sm:space-y-4">
-                    {/* Connection Type - Dynamic from API */}
+                  {/* Meter Type & Pipe Size */}
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-                      <label className="text-sm text-gray-800 mb-2 block flex items-center gap-2 font-semibold">
-                        <Droplet className="w-4 h-4 text-blue-600" />
-                        Connection Category <span className="text-red-500">*</span>
+                      <label className="text-sm text-gray-800 mb-2 block font-semibold">
+                        Connection Type <span className="text-red-500">*</span>
                       </label>
                       <select
-                        value={connectionType}
-                        onChange={(e) => setConnectionType(e.target.value)}
+                        value={isMeter ? "meter" : "non-meter"}
+                        onChange={(e) => setIsMeter(e.target.value === "meter")}
                         className="w-full h-11 border-2 border-gray-300 bg-white hover:border-gray-400 transition-colors shadow-sm rounded-md px-3"
-                        disabled={ratesConfig.length === 0}
                       >
-                        <option value="">Select Type</option>
-                        {ratesConfig.map((config) => (
-                          <option key={config.connectionType} value={config.connectionType}>
-                            {config.icon} {config.label}
-                          </option>
-                        ))}
+                        <option value="meter">📊 Meter</option>
+                        <option value="non-meter">📅 Non-Meter</option>
                       </select>
-                      {connectionType && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Rate: ₹{getRateByConnectionType(connectionType)}/unit (Meter) | ₹{getFixedRateByConnectionType(connectionType)}/month (Fixed)
-                        </p>
-                      )}
                     </div>
 
-                    {/* Meter Type & Pipe Size */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-                        <label className="text-sm text-gray-800 mb-2 block font-semibold">
-                          Connection Type <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={isMeter ? "meter" : "non-meter"}
-                          onChange={(e) => setIsMeter(e.target.value === "meter")}
-                          className="w-full h-11 border-2 border-gray-300 bg-white hover:border-gray-400 transition-colors shadow-sm rounded-md px-3"
-                        >
-                          <option value="meter">📊 Meter</option>
-                          <option value="non-meter">📅 Non-Meter</option>
-                        </select>
-                      </div>
-
-                      <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-                        <label className="text-sm text-gray-800 mb-2 block font-semibold">
-                          Tap Size <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={connectionSize}
-                          onChange={(e) => setConnectionSize(e.target.value)}
-                          className="w-full h-11 border-2 border-gray-300 bg-white hover:border-gray-400 transition-colors shadow-sm rounded-md px-3"
-                        >
-                          <option value="">Size</option>
-                          <option value="0.5">1/2"</option>
-                          <option value="0.75">3/4"</option>
-                          <option value="1">1"</option>
-                          <option value="1.5">1 1/2"</option>
-                          <option value="2">2"</option>
-                          <option value="3">3"</option>
-                          <option value="4">4"</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Meter Readings */}
-                    {isMeter && (
-                      <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-                        <label className="text-sm text-gray-800 mb-3 block font-semibold flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-gray-600" />
-                          Meter Readings
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-xs text-gray-700 mb-1.5 block">
-                              Previous Reading <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                              type="number"
-                              value={previousReading}
-                              onChange={(e) => setPreviousReading(e.target.value)}
-                              placeholder="0.00"
-                              className="h-11 border-2 border-gray-300 bg-white hover:border-gray-400 focus:border-gray-500 transition-colors shadow-sm"
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-xs text-gray-700 mb-1.5 block">
-                              Current Reading <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                              type="number"
-                              value={currentReading}
-                              onChange={(e) => setCurrentReading(e.target.value)}
-                              placeholder="0.00"
-                              className="h-11 border-2 border-gray-300 bg-white hover:border-gray-400 focus:border-gray-500 transition-colors shadow-sm"
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <Button
-                        onClick={handleCalculate}
-                        disabled={loading || !connectionType || (isMeter && (!previousReading || !currentReading))}
-                        className="h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+                      <label className="text-sm text-gray-800 mb-2 block font-semibold">
+                        Tap Size <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={connectionSize}
+                        onChange={(e) => setConnectionSize(e.target.value)}
+                        className="w-full h-11 border-2 border-gray-300 bg-white hover:border-gray-400 transition-colors shadow-sm rounded-md px-3"
                       >
-                        {loading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Calculating...
-                          </>
-                        ) : (
-                          <>
-                            <Calculator className="w-5 h-5 mr-2" />
-                            Calculate
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={handleReset}
-                        variant="outline"
-                        className="h-12 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 shadow-lg font-semibold"
-                      >
-                        <X className="w-5 h-5 mr-2" />
-                        Reset
-                      </Button>
+                        <option value="">Size</option>
+                        <option value="0.5">1/2"</option>
+                        <option value="0.75">3/4"</option>
+                        <option value="1">1"</option>
+                        <option value="1.5">1 1/2"</option>
+                        <option value="2">2"</option>
+                        <option value="3">3"</option>
+                        <option value="4">4"</option>
+                      </select>
                     </div>
                   </div>
-                </div>
 
-                {/* Result Display */}
-                {showResult && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 shadow-2xl border-2 border-green-400"
-                  >
-                    <div className="text-center">
-                      <p className="text-sm text-white/90 mb-1 font-medium">Estimated Bill Amount</p>
-                      <div className="flex items-center justify-center gap-2 mb-3">
-                        <span className="text-5xl text-white font-bold">₹{totalTax.toFixed(2)}</span>
+                  {/* Meter Readings */}
+                  {isMeter && (
+                    <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+                      <label className="text-sm text-gray-800 mb-3 block font-semibold flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-gray-600" />
+                        Meter Readings
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-700 mb-1.5 block">
+                            Previous Reading <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            value={previousReading}
+                            onChange={(e) => setPreviousReading(e.target.value)}
+                            placeholder="0.00"
+                            className="h-11 border-2 border-gray-300 bg-white hover:border-gray-400 focus:border-gray-500 transition-colors shadow-sm"
+                            min="0"
+                            step="0.01"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs text-gray-700 mb-1.5 block">
+                            Current Reading <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            value={currentReading}
+                            onChange={(e) => setCurrentReading(e.target.value)}
+                            placeholder="0.00"
+                            className="h-11 border-2 border-gray-300 bg-white hover:border-gray-400 focus:border-gray-500 transition-colors shadow-sm"
+                            min="0"
+                            step="0.01"
+                          />
+                        </div>
                       </div>
-
-                      {isMeter ? (
-                        <div className="pt-3 border-t border-white/30">
-                          <p className="text-white/95 text-sm font-medium">
-                            {consumedUnits.toFixed(2)} units × ₹{rate} per unit
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="pt-1 border-t border-white/30">
-                          <p className="text-white/95 text-sm font-medium">
-                            Fixed Monthly Rate
-                          </p>
-                        </div>
-                      )}
                     </div>
-                  </motion.div>
-                )}
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <Button
+                      onClick={handleCalculate}
+                      disabled={loading || !connectionType || (isMeter && (!previousReading || !currentReading))}
+                      className="h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Calculating...
+                        </>
+                      ) : (
+                        <>
+                          <Calculator className="w-5 h-5 mr-2" />
+                          Calculate
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleReset}
+                      variant="outline"
+                      className="h-12 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 shadow-lg font-semibold"
+                    >
+                      <X className="w-5 h-5 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
+                </div>
               </div>
+
+              {/* Result Display */}
+              {showResult && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 shadow-2xl border-2 border-green-400"
+                >
+                  <div className="text-center">
+                    <p className="text-sm text-white/90 mb-1 font-medium">Estimated Bill Amount</p>
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <span className="text-5xl text-white font-bold">₹{totalTax.toFixed(2)}</span>
+                    </div>
+
+                    {isMeter ? (
+                      <div className="pt-3 border-t border-white/30">
+                        <p className="text-white/95 text-sm font-medium">
+                          {consumedUnits.toFixed(2)} units × ₹{rate} per unit
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="pt-1 border-t border-white/30">
+                        <p className="text-white/95 text-sm font-medium">
+                          Fixed Monthly Rate
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
             </div>
-          </Card>
-        </motion.div>
+          </div>
+        </Drawer>
       </div>
     </>
   );

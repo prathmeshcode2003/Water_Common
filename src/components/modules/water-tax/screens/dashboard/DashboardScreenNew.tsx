@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { clearCitizenSession } from "@/app/[locale]/water-tax/actions";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent } from "@/components/common/Water.Citizen/Dialog";
+import { Drawer } from "@/components/common";
 import { NewConnectionFormContent } from "@/components/modules/water-tax/screens/shared/NewConnectionForm";
 
 // Dummy components for tabs (replace with actual implementations)
@@ -859,18 +859,26 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
       </div>
       */}
 
-      {/* New Connection Dialog */}
-      <Dialog open={showNewConnectionDialog} onOpenChange={setShowNewConnectionDialog}>
-        <DialogContent className="max-w-4xl">
-          <NewConnectionFormContent
-            data-testid="new-connection-form"
-            user={user}
-            selectedProperty={user.allProperties.find((p: any) => p.propertyNumber === currentProperty)}
-            onBack={() => setShowNewConnectionDialog(false)}
-            onSubmitSuccess={() => setShowNewConnectionDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* New Connection Drawer */}
+      <Drawer
+        open={showNewConnectionDialog}
+        onClose={() => setShowNewConnectionDialog(false)}
+        title={
+          <div className="flex items-center gap-2 text-xl font-bold text-blue-700">
+            <Building className="w-6 h-6" />
+            New Water Connection
+          </div>
+        }
+        width="xl"
+      >
+        <NewConnectionFormContent
+          data-testid="new-connection-form"
+          user={user}
+          selectedProperty={user.allProperties.find((p: any) => p.propertyNumber === currentProperty)}
+          onBack={() => setShowNewConnectionDialog(false)}
+          onSubmitSuccess={() => setShowNewConnectionDialog(false)}
+        />
+      </Drawer>
     </main>
   );
 }

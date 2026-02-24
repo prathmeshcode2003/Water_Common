@@ -4,13 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Water.Citizen/Input';
 import { Checkbox } from '@/components/common/Water.Citizen/Checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/common/Water.Citizen/Dialog';
+import { Drawer } from '@/components/common';
 import {
   Upload,
   ChevronLeft,
@@ -388,85 +382,92 @@ export function NewConnectionFormContent({
         </div>
       </div>
 
-      {/* Success Dialog */}
-      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
-              </div>
-              Application Submitted!
-            </DialogTitle>
-            <DialogDescription className="text-sm pt-2">
-              Your new water connection application has been submitted successfully.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-2">
-            <p className="text-xs text-gray-600 mb-1">Application Number</p>
-            <p className="text-xl font-bold text-blue-600">{applicationNumber}</p>
-            <p className="text-xs text-gray-500 mt-2">Please save this number for tracking</p>
+      {/* Success Drawer */}
+      <Drawer
+        open={showSuccessDialog}
+        onClose={() => {
+          setShowSuccessDialog(false);
+          if (onBack) onBack();
+        }}
+        title={
+          <div className="flex items-center gap-2 text-lg">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            </div>
+            Application Submitted!
           </div>
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={() => {
-                setShowSuccessDialog(false);
-                if (onBack) onBack();
-              }}
-              className="h-10 px-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        }
+        width="sm"
+      >
+        <div className="text-sm pt-2 mb-2">
+          Your new water connection application has been submitted successfully.
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-2">
+          <p className="text-xs text-gray-600 mb-1">Application Number</p>
+          <p className="text-xl font-bold text-blue-600">{applicationNumber}</p>
+          <p className="text-xs text-gray-500 mt-2">Please save this number for tracking</p>
+        </div>
+        <div className="flex justify-end pt-2">
+          <Button
+            onClick={() => {
+              setShowSuccessDialog(false);
+              if (onBack) onBack();
+            }}
+            className="h-10 px-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm"
+          >
+            Close
+          </Button>
+        </div>
+      </Drawer>
 
-      {/* Document Viewer Dialog */}
-      <Dialog open={viewingDocument !== null} onOpenChange={(open) => !open && setViewingDocument(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <FileText className="w-5 h-5 text-blue-600" />
-              Document Preview
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              {viewingDocument?.file.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center bg-gray-100 rounded-lg p-6 min-h-[500px]">
-            {viewingDocument?.file && (
-              viewingDocument.file.type.startsWith('image/') ? (
-                <img
-                  src={URL.createObjectURL(viewingDocument.file)}
-                  alt={viewingDocument.file.name}
-                  className="max-w-full max-h-[70vh] object-contain rounded shadow-lg"
-                />
-              ) : viewingDocument.file.type === 'application/pdf' ? (
-                <iframe
-                  src={URL.createObjectURL(viewingDocument.file)}
-                  className="w-full h-[70vh] rounded shadow-lg"
-                  title={viewingDocument.file.name}
-                />
-              ) : (
-                <div className="text-center text-gray-600">
-                  <FileText className="w-20 h-20 mx-auto mb-4 text-gray-400" />
-                  <p className="text-sm font-medium">Preview not available</p>
-                  <p className="text-xs mt-2 text-gray-500">{viewingDocument.file.name}</p>
-                </div>
-              )
-            )}
+      {/* Document Viewer Drawer */}
+      <Drawer
+        open={viewingDocument !== null}
+        onClose={() => setViewingDocument(null)}
+        title={
+          <div className="flex items-center gap-2 text-base">
+            <FileText className="w-5 h-5 text-blue-600" />
+            Document Preview
           </div>
-          <div className="flex justify-end pt-4 border-t">
-            <Button
-              onClick={() => setViewingDocument(null)}
-              className="h-10 px-6 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        }
+        width="lg"
+      >
+        <div className="text-sm mb-2">
+          {viewingDocument?.file.name}
+        </div>
+        <div className="flex items-center justify-center bg-gray-100 rounded-lg p-6 min-h-[500px]">
+          {viewingDocument?.file && (
+            viewingDocument.file.type.startsWith('image/') ? (
+              <img
+                src={URL.createObjectURL(viewingDocument.file)}
+                alt={viewingDocument.file.name}
+                className="max-w-full max-h-[70vh] object-contain rounded shadow-lg"
+              />
+            ) : viewingDocument.file.type === 'application/pdf' ? (
+              <iframe
+                src={URL.createObjectURL(viewingDocument.file)}
+                className="w-full h-[70vh] rounded shadow-lg"
+                title={viewingDocument.file.name}
+              />
+            ) : (
+              <div className="text-center text-gray-600">
+                <FileText className="w-20 h-20 mx-auto mb-4 text-gray-400" />
+                <p className="text-sm font-medium">Preview not available</p>
+                <p className="text-xs mt-2 text-gray-500">{viewingDocument.file.name}</p>
+              </div>
+            )
+          )}
+        </div>
+        <div className="flex justify-end pt-4 border-t">
+          <Button
+            onClick={() => setViewingDocument(null)}
+            className="h-10 px-6 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Close
+          </Button>
+        </div>
+      </Drawer>
     </>
   );
 }
