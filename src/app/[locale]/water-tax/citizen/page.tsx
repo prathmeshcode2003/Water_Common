@@ -64,8 +64,19 @@ export default async function WaterTaxCitizenPage({
   // Prepare user object for protected screens
   let user: any = null;
   if (session && session.citizenId && session.connections) {
+    // Extract mobile number from lookup query if it's a mobile number
+    const isMobileQuery = session.lookupQuery && /^\d{10}$/.test(session.lookupQuery.replace(/\D/g, '').slice(-10));
+    const mobileNo = isMobileQuery ? session.lookupQuery.replace(/\D/g, '').slice(-10) : null;
+    
+    console.log('📱 Extracting mobile number:', {
+      lookupQuery: session.lookupQuery,
+      isMobileQuery,
+      extractedMobile: mobileNo
+    });
+    
     user = {
       citizenId: session.citizenId,
+      mobileNo: mobileNo, // Add mobile number to user object
       selectedProperty: session.selectedConnectionId || session.connections[0]?.consumerID,
       propertyNumber: session.selectedConnectionId || session.connections[0]?.consumerID,
       allProperties: session.connections.map((conn: any) => ({

@@ -1,6 +1,11 @@
 /**
  * Service to interact with the Water Consumer API.
- * This function should only be called ONCE per OTP verification.
+ * This file provides all API interactions for water tax citizen portal.
+ * 
+ * Available Functions:
+ * - searchConsumer: Find consumers by mobile, property, name, etc.
+ * - fetchMeterReadings: Get meter reading history for a connection
+ * - submitMeterReading: Submit new meter reading with photo
  */
 export interface WaterConsumerSearchParams {
   query: string; // mobile, property, consumer number, or owner name
@@ -74,6 +79,42 @@ export async function searchConsumer(params: WaterConsumerSearchParams) {
 
   if (!res.ok) {
     throw new Error("Failed to fetch consumer data");
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetch meter reading history for a specific connection
+ */
+export async function fetchMeterReadings(connectionId: string) {
+  const url = `http://localhost:5268/api/MeterReadings?ConnectionId=${connectionId}`;
+  
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch meter readings: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Submit a new meter reading
+ */
+export async function submitMeterReading(formData: FormData) {
+  const url = "http://localhost:5268/api/MeterReadings";
+  
+  const res = await fetch(url, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to submit meter reading: ${res.status}`);
   }
 
   return res.json();

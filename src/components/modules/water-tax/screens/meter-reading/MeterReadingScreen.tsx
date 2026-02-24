@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Camera,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
+import { searchConsumer, fetchMeterReadings, submitMeterReading } from "@/services/waterConsumerService";
 import { Button } from "@/components/common/Button";
 import { toast } from "sonner";
 import { MeterReadingMobileView } from "./MeterReadingMobileView";
@@ -30,90 +31,137 @@ interface MeterReadingScreenProps {
 }
 
 interface Connection {
-  id: string;
+  consumerID: number;
   consumerNo: string;
-  upicId: string;
+  oldConsumerNo: string;
+  areaName: string;
+  subAreaName: string;
   propertyNo: string;
+  partitionNo: string | null;
+  consumerTitle: string;
+  consumerTitleEnglish: string;
+  consumerName: string;
+  consumerNameEnglish: string;
+  mobileNo: string;
+  emailId: string;
   address: string;
-  zoneNo: string;
-  wardNo: string;
-  name: string;
-  email: string;
-  connectionType: string;
-  category: string;
-  status: string;
-  meterNo: string;
+  addressEnglish: string;
+  connectionCategoryName: string;
+  connectionTypeName: string;
+  pipeSizeName: string;
+  wardName: string;
+  meterNumber: string;
+  meterCompany: string;
   meterSize: string;
-  previousReading: string;
-  previousReadingDate: string;
+  meterCost: number;
+  isActive: boolean;
+  markedForDeletion: boolean;
+  createdDate: string;
+  createdBy: number;
+  updatedDate: string | null;
+  updatedBy: number | null;
+  previousReading?: string;
+  previousReadingDate?: string;
 }
 
 export function MeterReadingScreen({ onNavigate, user, initialConnections, initialReadingHistory }: MeterReadingScreenProps) {
-  // TODO: API Integration - Fetch user's connections from backend
-  // API Endpoint: GET /api/water-tax/citizen/connections
-  const [availableConnections] = useState<Connection[]>([
-    {
-      id: "CON-2026-001",
-      consumerNo: "CON-2026-001",
-      upicId: "UPIC123456789",
-      propertyNo: "PROP-2026-001",
-      address: "123, MG Road, Sector 12, Bangalore - 560001",
-      zoneNo: "Zone A",
-      wardNo: "5",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      connectionType: "Commercial",
-      category: "Meter",
-      status: "Active",
-      meterNo: "MTR-2024-3456",
-      meterSize: "15mm",
-      previousReading: "1245",
-      previousReadingDate: "15/09/2024",
-    },
-    {
-      id: "CON-2026-002",
-      consumerNo: "CON-2026-002",
-      upicId: "UPIC123456789",
-      propertyNo: "PROP-2026-001",
-      address: "123, MG Road, Sector 12, Bangalore - 560001",
-      zoneNo: "Zone A",
-      wardNo: "5",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      connectionType: "Domestic",
-      category: "Non-Meter",
-      status: "Active",
-      meterNo: "MTR-2024-7890",
-      meterSize: "20mm",
-      previousReading: "890",
-      previousReadingDate: "12/09/2024",
-    },
-    {
-      id: "CON-2026-003",
-      consumerNo: "CON-2026-003",
-      upicId: "UPIC123456789",
-      propertyNo: "PROP-2026-001",
-      address: "123, MG Road, Sector 12, Bangalore - 560001",
-      zoneNo: "Zone A",
-      wardNo: "5",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      connectionType: "Industrial",
-      category: "Meter",
-      status: "Active",
-      meterNo: "MTR-2024-1234",
-      meterSize: "25mm",
-      previousReading: "2567",
-      previousReadingDate: "18/09/2024",
-    },
-  ]);
+  // API Integration - Fetch user's connections from backend
+  const [availableConnections, setAvailableConnections] = useState<Connection[]>([]);
+  const [isLoadingConnections, setIsLoadingConnections] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  const [selectedConnectionId, setSelectedConnectionId] = useState(
-    availableConnections[0].id
-  );
-  const [selectedConnection, setSelectedConnection] = useState<Connection | null>(
-    availableConnections[0]
-  );
+  // Fetch connections from API
+  useEffect(() => {
+    const fetchConnections = async () => {
+      try {
+        setIsLoadingConnections(true);
+        setConnectionError(null);
+        
+        // Debug log user object structure
+        console.log('🔍 MeterReadingScreen - User object:', user);
+        console.log('🔍 MeterReadingScreen - User keys:', user ? Object.keys(user) : 'user is null/undefined');
+        
+        // Try multiple possible mobile number properties
+        const mobileNo = user?.mobileNo || user?.mobile || user?.phoneNumber || user?.citizenId;
+        
+        console.log('🔍 MeterReadingScreen - Found mobile number:', mobileNo);
+        
+        // Validate that we have a mobile number
+        if (!mobileNo) {
+          console.error('❌ No mobile number found in user object:', {
+            mobileNo: user?.mobileNo,
+            mobile: user?.mobile,
+            phoneNumber: user?.phoneNumber,
+            citizenId: user?.citizenId,
+            userObject: user
+          });
+          throw new Error('Mobile number not found in login session. Please login again.');
+        }
+        console.log('📞 Making API call with mobile:', mobileNo);
+        const data = await searchConsumer({ query: mobileNo });
+        console.log('📊 API Response:', data);
+        
+        // Check if response has items array
+        if (!data.items || !Array.isArray(data.items)) {
+          throw new Error('Invalid API response format');
+        }
+        
+        // Map API response to our Connection interface
+        const connections: Connection[] = data.items.map((item: any) => ({
+          consumerID: item.consumerID,
+          consumerNo: item.consumerNo,
+          oldConsumerNo: item.oldConsumerNo,
+          areaName: item.areaName,
+          subAreaName: item.subAreaName,
+          propertyNo: item.propertyNo,
+          partitionNo: item.partitionNo,
+          consumerTitle: item.consumerTitle,
+          consumerTitleEnglish: item.consumerTitleEnglish,
+          consumerName: item.consumerName,
+          consumerNameEnglish: item.consumerNameEnglish,
+          mobileNo: item.mobileNo,
+          emailId: item.emailId,
+          address: item.address,
+          addressEnglish: item.addressEnglish,
+          connectionCategoryName: item.connectionCategoryName,
+          connectionTypeName: item.connectionTypeName,
+          pipeSizeName: item.pipeSizeName,
+          wardName: item.wardName,
+          meterNumber: item.meterNumber,
+          meterCompany: item.meterCompany,
+          meterSize: item.meterSize,
+          meterCost: item.meterCost,
+          isActive: item.isActive,
+          markedForDeletion: item.markedForDeletion,
+          createdDate: item.createdDate,
+          createdBy: item.createdBy,
+          updatedDate: item.updatedDate,
+          updatedBy: item.updatedBy,
+          // Add default values for reading-related fields
+          previousReading: "0",
+          previousReadingDate: new Date().toLocaleDateString('en-GB'),
+        }));
+        
+        setAvailableConnections(connections);
+        
+        // Set default selected connection if connections exist
+        if (connections.length > 0) {
+          setSelectedConnectionId(connections[0].consumerID.toString());
+          setSelectedConnection(connections[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching connections:', error);
+        setConnectionError(error instanceof Error ? error.message : 'Failed to fetch connections');
+      } finally {
+        setIsLoadingConnections(false);
+      }
+    };
+
+    fetchConnections();
+  }, [user]);
+
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>("");
+  const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
 
   const getTodayDate = () => new Date().toISOString().split("T")[0];
   const [readingDate, setReadingDate] = useState(getTodayDate());
@@ -144,65 +192,66 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
   const [showInvalidImageDialog, setShowInvalidImageDialog] = useState(false);
   const [invalidImageReason, setInvalidImageReason] = useState("");
 
-  // TODO: API Integration - Fetch reading history from backend
-  // API Endpoint: GET /api/water-tax/citizen/meter-readings?connectionId={connectionId}
-  const [submittedReadings, setSubmittedReadings] = useState<any[]>([
-    {
-      id: "RDG-2024-8521",
-      method: "15mm",
-      currentReading: "1345",
-      previousReading: "1245",
-      consumption: 100,
-      unit: 100,
-      rate: 8.58,
-      waterCharges: 858.0,
-      totalAmount: 11020.0,
-      status: "Paid",
-      date: "16/10/2024",
-      readingMonth: "Oct 2024",
-      connectionId: "CON-2026-001",
-    },
-    {
-      id: "RDG-2024-7843",
-      method: "15mm",
-      currentReading: "1245",
-      previousReading: "1158",
-      consumption: 120,
-      unit: 120,
-      rate: 8.58,
-      waterCharges: 1029.6,
-      totalAmount: 14020.0,
-      status: "Paid",
-      date: "14/09/2024",
-      readingMonth: "Sep 2024",
-      connectionId: "CON-2026-001",
-    },
-    {
-      id: "RDG-2024-6912",
-      method: "15mm",
-      currentReading: "1158",
-      previousReading: "1072",
-      consumption: 135,
-      unit: 135,
-      rate: 8.58,
-      waterCharges: 1147.5,
-      totalAmount: 11147.5,
-      status: "Paid",
-      date: "13/08/2024",
-      readingMonth: "Aug 2024",
-      connectionId: "CON-2026-001",
-    },
-  ]);
+  // Reading history state
+  const [submittedReadings, setSubmittedReadings] = useState<any[]>([]);
+  const [isLoadingReadings, setIsLoadingReadings] = useState(false);
+  const [readingError, setReadingError] = useState<string | null>(null);
+
+  // Fetch reading history when connection is selected
+  useEffect(() => {
+    const fetchReadingHistory = async () => {
+      if (!selectedConnection) {
+        setSubmittedReadings([]);
+        return;
+      }
+
+      try {
+        setIsLoadingReadings(true);
+        setReadingError(null);
+        
+        // API call for reading history using service
+        const data = await fetchMeterReadings(selectedConnection.consumerID.toString());
+        
+        // Map API response to reading history format
+        const readings = data.items ? data.items.map((item: any) => ({
+          id: item.readingId || `RDG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          method: item.meterSize || selectedConnection.meterSize,
+          currentReading: item.currentReading?.toString() || "0",
+          previousReading: item.previousReading?.toString() || "0",
+          consumption: item.consumption || 0,
+          unit: item.consumption || 0,
+          rate: item.ratePerUnit || 8.58,
+          waterCharges: item.waterCharges || 0,
+          totalAmount: item.totalAmount || 0,
+          status: item.status || "Submitted",
+          date: item.readingDate ? new Date(item.readingDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
+          readingMonth: item.readingMonth || new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+          connectionId: selectedConnection.consumerNo,
+        })) : [];
+        
+        setSubmittedReadings(readings);
+        
+      } catch (error) {
+        console.error('Error fetching reading history:', error);
+        setReadingError(error instanceof Error ? error.message : 'Failed to fetch reading history');
+        // Set empty array on error
+        setSubmittedReadings([]);
+      } finally {
+        setIsLoadingReadings(false);
+      }
+    };
+
+    fetchReadingHistory();
+  }, [selectedConnection]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleConnectionSelect = async (connectionId: string) => {
     setSelectedConnectionId(connectionId);
 
-    // TODO: API Integration - Fetch connection details when selected
-    // API Endpoint: GET /api/water-tax/citizen/connection-details/{connectionId}
+    // Find connection details when selected
     const connection = availableConnections.find(
-      (conn) => conn.id === connectionId
+      (conn) => conn.consumerID.toString() === connectionId
     );
     if (connection) {
       setSelectedConnection(connection);
@@ -211,7 +260,7 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
       setCurrentReading("");
       setMeterPhoto(null);
       setUploadedDocument(null);
-      setTapSize("");
+      setTapSize(connection.meterSize || "15mm");
     }
   };
 
@@ -446,7 +495,7 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
     if (!selectedConnection || !currentReading) return 0;
     const consumption = calculateConsumption();
     if (consumption < 0) return 0;
-    const rate = getRateByConnectionType(selectedConnection.connectionType);
+    const rate = getRateByConnectionType(selectedConnection.connectionCategoryName);
     return consumption * rate;
   };
 
@@ -473,42 +522,39 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
     setIsSubmitting(true);
 
     try {
-      // TODO: API Integration - Submit meter reading
-      // API Endpoint: POST /api/water-tax/citizen/meter-readings
-      // Request Body: {
-      //   connectionId: selectedConnectionId,
-      //   readingDate,
-      //   currentReading,
-      //   meterPhoto: uploadedDocument (FormData),
-      //   tapSize,
-      // }
-      // Response: { readingId, status, estimatedBill }
+        // API Integration - Submit meter reading using service
+        const formData = new FormData();
+        formData.append('connectionId', selectedConnectionId);
+        formData.append('readingDate', readingDate);
+        formData.append('currentReading', currentReading);
+        formData.append('tapSize', tapSize);
+        if (uploadedDocument) {
+          formData.append('meterPhoto', uploadedDocument);
+        }
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+        const result = await submitMeterReading(formData);
+        
+        const readingId = result.readingId || `RDG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
+        setSubmittedReadingId(readingId);
 
-      const readingId = `RDG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
-      setSubmittedReadingId(readingId);
-
-      const ratePerUnit = 12;
-      const waterCharges = consumption * ratePerUnit;
-      const totalAmount = waterCharges;
-
-      const newReading = {
-        id: readingId,
-        method: tapSize,
-        currentReading: currentReading,
-        previousReading: selectedConnection?.previousReading,
-        consumption: consumption,
-        rate: ratePerUnit,
-        waterCharges: waterCharges,
-        totalAmount: totalAmount,
-        status: "Submitted",
-        date: readingDate,
-        connectionId: selectedConnection?.consumerNo,
-      };
-
-      setSubmittedReadings([newReading, ...submittedReadings]);
-
+        // Refresh the reading history after successful submission using service
+        const updatedData = await fetchMeterReadings(selectedConnection?.consumerID.toString() || '');
+        const updatedReadings = updatedData.items ? updatedData.items.map((item: any) => ({
+          id: item.readingId || `RDG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          method: item.meterSize || selectedConnection?.meterSize,
+          currentReading: item.currentReading?.toString() || "0",
+          previousReading: item.previousReading?.toString() || "0",
+          consumption: item.consumption || 0,
+          unit: item.consumption || 0,
+          rate: item.ratePerUnit || 8.58,
+          waterCharges: item.waterCharges || 0,
+          totalAmount: item.totalAmount || 0,
+          status: item.status || "Submitted",
+          date: item.readingDate ? new Date(item.readingDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
+          readingMonth: item.readingMonth || new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+          connectionId: selectedConnection?.consumerNo,
+        })) : [];
+        setSubmittedReadings(updatedReadings);
       toast.success("Meter reading submitted successfully!");
       setShowSuccessDialog(true);
 
@@ -542,6 +588,8 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
           selectedConnection={selectedConnection}
           onConnectionSelect={handleConnectionSelect}
           readingHistory={filteredReadings}
+          isLoading={isLoadingConnections}
+          error={connectionError}
         />
       </div>
 
@@ -584,17 +632,32 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
                   <label className="text-[10px] text-gray-500 mb-1 block uppercase tracking-wide font-semibold">
                     Filter by Connection
                   </label>
-                  <select
-                    value={selectedConnectionId}
-                    onChange={(e) => handleConnectionSelect(e.target.value)}
-                    className="w-full h-8 border-0 bg-transparent p-0 focus:ring-0 text-sm text-gray-900 font-semibold"
-                  >
-                    {availableConnections.map((conn) => (
-                      <option key={conn.id} value={conn.id}>
-                        {conn.propertyNo} - {conn.consumerNo} - {conn.connectionType}
-                      </option>
-                    ))}
-                  </select>
+                  {isLoadingConnections ? (
+                    <div className="flex items-center gap-2 h-8">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm text-gray-500">Loading connections...</span>
+                    </div>
+                  ) : connectionError ? (
+                    <div className="text-sm text-red-600 h-8 flex items-center">
+                      Error: {connectionError}
+                    </div>
+                  ) : availableConnections.length === 0 ? (
+                    <div className="text-sm text-gray-500 h-8 flex items-center">
+                      No connections found
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedConnectionId}
+                      onChange={(e) => handleConnectionSelect(e.target.value)}
+                      className="w-full h-8 border-0 bg-transparent p-0 focus:ring-0 text-sm text-gray-900 font-semibold"
+                    >
+                      {availableConnections.map((conn) => (
+                        <option key={conn.consumerID} value={conn.consumerID.toString()}>
+                          {conn.propertyNo} - {conn.consumerNo} - {conn.connectionCategoryName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
               </div>
@@ -603,6 +666,7 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
                 <Button
                   onClick={() => setShowAddReadingDialog(true)}
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg h-11 px-6"
+                  disabled={!selectedConnection || isLoadingConnections}
                 >
                   <Camera className="w-5 h-5 mr-2" />
                   <span className="text-sm font-bold">Add New Reading</span>
@@ -613,7 +677,52 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
 
           {/* Readings Table */}
           <div className="flex-1 overflow-hidden">
-            <Card className="h-full p-4 bg-white/90 backdrop-blur-sm shadow-lg overflow-hidden flex flex-col">
+            {isLoadingConnections ? (
+              <Card className="h-full p-8 bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Connections</h3>
+                  <p className="text-sm text-gray-600">Please wait while we fetch your connection data...</p>
+                </div>
+              </Card>
+            ) : connectionError ? (
+              <Card className="h-full p-8 bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center">
+                <div className="text-center max-w-md">
+                  <div className="w-16 h-16 bg-red-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <X className="w-8 h-8 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-red-900 mb-2">Connection Error</h3>
+                  <p className="text-sm text-red-600 mb-4">{connectionError}</p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    className="bg-red-500 hover:bg-red-600"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </Card>
+            ) : availableConnections.length === 0 ? (
+              <Card className="h-full p-8 bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <Droplets className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Connections Found</h3>
+                  <p className="text-sm text-gray-600">You don't have any water connections associated with your account.</p>
+                </div>
+              </Card>
+            ) : !selectedConnection ? (
+              <Card className="h-full p-8 bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <Gauge className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Connection</h3>
+                  <p className="text-sm text-gray-600">Please select a water connection from the dropdown above to view meter readings.</p>
+                </div>
+              </Card>
+            ) : (
+              <Card className="h-full p-4 bg-white/90 backdrop-blur-sm shadow-lg overflow-hidden flex flex-col">
               <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-200">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
                   <CheckCircle className="w-4 h-4 text-white" />
@@ -736,7 +845,8 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
                   </table>
                 )}
               </div>
-            </Card>
+              </Card>
+            )}
           </div>
         </div>
 
@@ -1184,7 +1294,7 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
                         </span>
                         <p className="text-[10px] text-gray-600 font-normal mt-0.5">
                           Connection: {selectedConnection?.consumerNo} (
-                          {selectedConnection?.connectionType})
+                          {selectedConnection?.connectionCategoryName})
                         </p>
                       </div>
                     </div>
@@ -1303,13 +1413,13 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
                                 Rate per Unit
                               </span>
                               <span className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 sm:px-2 py-0.5 rounded-full font-semibold">
-                                {selectedConnection.connectionType}
+                                {selectedConnection.connectionCategoryName}
                               </span>
                             </div>
                             <p className="text-lg sm:text-2xl text-blue-600 font-bold">
                               ₹
                               {getRateByConnectionType(
-                                selectedConnection.connectionType
+                                selectedConnection.connectionCategoryName
                               )}
                               /unit
                             </p>
@@ -1381,7 +1491,7 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
                                 <span className="font-semibold">
                                   {consumption} units × ₹
                                   {getRateByConnectionType(
-                                    selectedConnection.connectionType
+                                    selectedConnection.connectionCategoryName
                                   )}
                                 </span>
                               </div>
