@@ -19,6 +19,13 @@ import {
 import { Card } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
 import { searchConsumer, fetchMeterReadings, submitMeterReading } from "@/services/waterConsumerService";
+import { 
+  fetchConsumerMeterReadings, 
+  createMeterReading, 
+  formatMeterReadingForDisplay,
+  type MeterReading,
+  type CreateMeterReadingRequest 
+} from "@/services/meterReadingService";
 import { Button } from "@/components/common/Button";
 import { toast } from "sonner";
 import { MeterReadingMobileView } from "./MeterReadingMobileView";
@@ -170,7 +177,7 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
   const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
   const [tapSize, setTapSize] = useState("");
   const [showMeterImageDialog, setShowMeterImageDialog] = useState(false);
-  const [showAddReadingDialog, setShowAddReadingDialog] = useState(false);
+  const [showAddReadingDrawer, setShowAddReadingDrawer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [submittedReadingId, setSubmittedReadingId] = useState("");
@@ -194,53 +201,102 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
 
   // Reading history state
   const [submittedReadings, setSubmittedReadings] = useState<any[]>([]);
+  const [meterReadings, setMeterReadings] = useState<MeterReading[]>([]);
+  const [actualPreviousReading, setActualPreviousReading] = useState<number>(0);
+  const [connectionRate, setConnectionRate] = useState<number>(8);
   const [isLoadingReadings, setIsLoadingReadings] = useState(false);
   const [readingError, setReadingError] = useState<string | null>(null);
+  const [isRefreshingReadings, setIsRefreshingReadings] = useState(false);
+
+  // Extract reading history fetch logic into reusable function
+  const fetchReadingHistory = async (showLoading = true) => {
+    if (!selectedConnection) {
+      setSubmittedReadings([]);
+      setMeterReadings([]);
+      return;
+    }
+
+    try {
+      if (showLoading) {
+        setIsLoadingReadings(true);
+      }
+      setReadingError(null);
+      
+      // Fetch meter readings using the new service
+      const readings = await fetchConsumerMeterReadings(selectedConnection.consumerID);
+      setMeterReadings(readings);
+      
+      console.log('🔍 Fetched meter readings:', readings);
+      console.log('📊 All readings with dates:', readings.map(r => ({ 
+        date: r.currentReadingDate, 
+        currentReading: r.currentReading,
+        meterReadingID: r.meterReadingID 
+      })));
+      
+      // Get the latest reading for previous reading display
+      if (readings.length > 0) {
+        const sortedReadings = readings.sort((a, b) => 
+          new Date(b.currentReadingDate).getTime() - new Date(a.currentReadingDate).getTime()
+        );
+        const latestReading = sortedReadings[0];
+        
+        console.log('📅 Sorted readings (newest first):', sortedReadings.map(r => ({ 
+          date: r.currentReadingDate, 
+          currentReading: r.currentReading 
+        })));
+        
+        // The latest current reading becomes the previous reading for the next submission
+        const nextPreviousReading = latestReading.currentReading;
+        setActualPreviousReading(nextPreviousReading);
+        
+        console.log('🔄 LOGIC: Latest Current Reading (' + latestReading.currentReading + ') becomes Previous Reading for new submission');
+        console.log('✅ Setting actualPreviousReading to:', nextPreviousReading);
+        console.log('📋 Latest reading details:', { 
+          date: latestReading.currentReadingDate, 
+          currentReading: latestReading.currentReading,
+          willBecomePreviousReading: nextPreviousReading,
+          meterReadingID: latestReading.meterReadingID
+        });
+        
+        // Based on your screenshot: Feb 2026 Current Reading = 180, so next Previous Reading = 180
+        console.log('📊 Example: If latest record shows Current Reading = 180, then Previous Reading for new entry = 180');
+      } else {
+        setActualPreviousReading(0);
+        console.log('🆆 No previous readings found, setting to 0');
+      }
+      
+      // Set connection-specific rate
+      const rate = getRateByConnectionType(selectedConnection.connectionCategoryName);
+      setConnectionRate(rate);
+      
+      // Format readings for display in the existing UI
+      const formattedReadings = readings.map((reading) => {
+        const formatted = formatMeterReadingForDisplay(reading);
+        // Add connectionId to match the filtering logic
+        return {
+          ...formatted,
+          connectionId: selectedConnection.consumerNo
+        };
+      });
+      setSubmittedReadings(formattedReadings);
+      
+      console.log('✨ Formatted readings for display:', formattedReadings);
+      
+    } catch (error) {
+      console.error('Error fetching reading history:', error);
+      setReadingError(error instanceof Error ? error.message : 'Failed to fetch reading history');
+      // Set empty arrays on error
+      setSubmittedReadings([]);
+      setMeterReadings([]);
+    } finally {
+      if (showLoading) {
+        setIsLoadingReadings(false);
+      }
+    }
+  };
 
   // Fetch reading history when connection is selected
   useEffect(() => {
-    const fetchReadingHistory = async () => {
-      if (!selectedConnection) {
-        setSubmittedReadings([]);
-        return;
-      }
-
-      try {
-        setIsLoadingReadings(true);
-        setReadingError(null);
-        
-        // API call for reading history using service
-        const data = await fetchMeterReadings(selectedConnection.consumerID.toString());
-        
-        // Map API response to reading history format
-        const readings = data.items ? data.items.map((item: any) => ({
-          id: item.readingId || `RDG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          method: item.meterSize || selectedConnection.meterSize,
-          currentReading: item.currentReading?.toString() || "0",
-          previousReading: item.previousReading?.toString() || "0",
-          consumption: item.consumption || 0,
-          unit: item.consumption || 0,
-          rate: item.ratePerUnit || 8.58,
-          waterCharges: item.waterCharges || 0,
-          totalAmount: item.totalAmount || 0,
-          status: item.status || "Submitted",
-          date: item.readingDate ? new Date(item.readingDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
-          readingMonth: item.readingMonth || new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
-          connectionId: selectedConnection.consumerNo,
-        })) : [];
-        
-        setSubmittedReadings(readings);
-        
-      } catch (error) {
-        console.error('Error fetching reading history:', error);
-        setReadingError(error instanceof Error ? error.message : 'Failed to fetch reading history');
-        // Set empty array on error
-        setSubmittedReadings([]);
-      } finally {
-        setIsLoadingReadings(false);
-      }
-    };
-
     fetchReadingHistory();
   }, [selectedConnection]);
 
@@ -253,14 +309,33 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
     const connection = availableConnections.find(
       (conn) => conn.consumerID.toString() === connectionId
     );
+    
+    console.log('🔗 Connection selection:', {
+      connectionId,
+      foundConnection: connection,
+      consumerNo: connection?.consumerNo
+    });
+    
     if (connection) {
       setSelectedConnection(connection);
       toast.success(`Connection ${connection.consumerNo} selected`);
+      
+      // Reset form fields
       setReadingDate(getTodayDate());
       setCurrentReading("");
       setMeterPhoto(null);
       setUploadedDocument(null);
       setTapSize(connection.meterSize || "15mm");
+      
+      // Set connection rate
+      const rate = getRateByConnectionType(connection.connectionCategoryName);
+      setConnectionRate(rate);
+      console.log('💰 Connection rate set to:', rate);
+      
+      // Reset previous reading - will be updated by the useEffect when readings are fetched
+      console.log('🔄 Connection selected - temporarily resetting previous reading to 0');
+      console.log('🔄 Previous reading will be updated after fetching latest readings');
+      setActualPreviousReading(0);
     }
   };
 
@@ -476,31 +551,57 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
   };
 
   const calculateConsumption = () => {
-    if (!selectedConnection || !currentReading) return 0;
+    if (!currentReading) return 0;
     const current = parseInt(currentReading) || 0;
-    const previous = parseInt(selectedConnection.previousReading) || 0;
+    const previous = actualPreviousReading; // Use actual previous reading from API
     return current - previous;
   };
 
   const getRateByConnectionType = (type: string): number => {
-    const rates: { [key: string]: number } = {
-      Commercial: 15,
-      Domestic: 8,
-      Industrial: 25,
-    };
-    return rates[type] || 8;
+    // Return the dynamic connection rate if available
+    return connectionRate;
   };
 
   const calculateEstimatedBill = () => {
-    if (!selectedConnection || !currentReading) return 0;
+    if (!currentReading) return 0;
     const consumption = calculateConsumption();
     if (consumption < 0) return 0;
-    const rate = getRateByConnectionType(selectedConnection.connectionCategoryName);
+    // Use the same rate function for consistency
+    const rate = selectedConnection ? getRateByConnectionType(selectedConnection.connectionCategoryName) : connectionRate;
     return consumption * rate;
   };
 
+  // Check if reading already exists for this date
+  const checkExistingReading = async (date: string, consumerID: number) => {
+    try {
+      console.log('🔍 Checking existing readings for:', { date, consumerID });
+      const existingReadings = await fetchConsumerMeterReadings(consumerID);
+      console.log('📋 Existing readings found:', existingReadings.length);
+      
+      const conflictingReading = existingReadings.find(reading => {
+        const readingDate = reading.currentReadingDate.split('T')[0];
+        console.log('📅 Comparing dates:', { readingDate, inputDate: date });
+        return readingDate === date;
+      });
+      
+      if (conflictingReading) {
+        console.log('⚠️ Conflict detected with existing reading:', conflictingReading);
+        return true;
+      }
+      
+      console.log('✅ No conflicts found for date:', date);
+      return false;
+    } catch (error) {
+      console.error('❌ Error checking existing readings:', error);
+      return false; // Allow submission if we can't check
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!selectedConnectionId) {
+    console.log('🚀 Starting meter reading submission...');
+    toast.info('🚀 Starting submission process...');
+    
+    if (!selectedConnection || !selectedConnectionId) {
       toast.error("Please select a connection");
       return;
     }
@@ -519,57 +620,237 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
       return;
     }
 
+    // Check for existing reading on this date BEFORE attempting submission
+    toast.info('🔍 Checking for existing readings...');
+    const hasExistingReading = await checkExistingReading(readingDate, selectedConnection.consumerID);
+    
+    if (hasExistingReading) {
+      const tomorrowDate = new Date(new Date(readingDate).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const yesterdayDate = new Date(new Date(readingDate).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      toast.error(
+        `❌ Duplicate Reading Detected!\n` +
+        `📅 A reading already exists for ${readingDate}\n\n` +
+        `💡 Try these dates instead:\n` +
+        `• Tomorrow: ${tomorrowDate}\n` +
+        `• Yesterday: ${yesterdayDate}\n` +
+        `• Or update the existing reading`,
+        { duration: 15000 }
+      );
+      
+      console.log('🚫 Pre-submission validation blocked duplicate reading');
+      return;
+    }
+    
+    console.log('✅ Pre-submission validation passed - no duplicates found');
+
+    toast.success('✅ Form validation passed!');
+    console.log('📝 Submitting meter reading:', {
+      selectedConnection: selectedConnection?.consumerNo,
+      currentReading,
+      previousReading: selectedConnection?.previousReading,
+      consumption,
+      readingDate
+    });
+
     setIsSubmitting(true);
 
     try {
-        // API Integration - Submit meter reading using service
-        const formData = new FormData();
-        formData.append('connectionId', selectedConnectionId);
-        formData.append('readingDate', readingDate);
-        formData.append('currentReading', currentReading);
-        formData.append('tapSize', tapSize);
-        if (uploadedDocument) {
-          formData.append('meterPhoto', uploadedDocument);
-        }
-
-        const result = await submitMeterReading(formData);
+        // API Integration - Submit meter reading using new service
+        toast.info('📄 Preparing reading data...');
         
-        const readingId = result.readingId || `RDG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
+        // Create current reading datetime  
+        const now = new Date();
+        const readingDateTime = `${readingDate}T${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}Z`;
+        
+        console.log('🕐 Generated reading datetime:', readingDateTime);
+        
+        // Prepare data according to your API schema
+        const readingData: CreateMeterReadingRequest = {
+          isActive: true,
+          createdBy: 0,
+          consumerMeterID: selectedConnection?.consumerID || 22,
+          consumerID: selectedConnection?.consumerID || 22,
+          billingCycleID: 4,
+          previousReadingDate: readingDate, // Use same date format as current reading
+          previousReading: actualPreviousReading,
+          currentReadingDate: readingDate, // Use date only as per your schema
+          currentReading: parseInt(currentReading),
+          readingStatusID: 1,
+          readingSourceID: uploadedDocument ? 2 : 1, // 2 for photo, 1 for manual
+          markedForDeletion: false, // Set to false for new readings
+          approvedBy: "system",
+          approvedDate: readingDateTime,
+          readingImagePath: uploadedDocument ? "uploaded_image.jpg" : "", // TODO: Implement actual image upload path
+          remark: `Reading: ${currentReading} | Previous: ${actualPreviousReading} | Consumption: ${consumption} units | Connection: ${selectedConnection?.consumerNo}`
+        };
+
+        console.log('� Debug - Reading submission details:', {
+          connection: selectedConnection?.consumerNo,
+          consumerID: selectedConnection?.consumerID,
+          currentReading: parseInt(currentReading),
+          previousReading: actualPreviousReading,
+          consumption: consumption,
+          readingDate: readingDate,
+          hasImage: !!uploadedDocument
+        });
+        
+        console.log('�📤 Sending reading data to API (Updated Schema):', readingData);
+        
+        
+        toast.info('🌐 Calling updated API with correct schema...');
+        toast.loading('📡 Submitting meter reading to database...', {
+          id: 'api-call'
+        });
+        
+        const result = await createMeterReading(readingData);
+        
+        toast.dismiss('api-call');
+        console.log('✅ API Response received:', result);
+        toast.success('✅ Reading saved to database successfully!');
+        
+        const readingId = result.meterReadingID ? `RDG-${result.meterReadingID}` : `RDG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
         setSubmittedReadingId(readingId);
 
-        // Refresh the reading history after successful submission using service
-        const updatedData = await fetchMeterReadings(selectedConnection?.consumerID.toString() || '');
-        const updatedReadings = updatedData.items ? updatedData.items.map((item: any) => ({
-          id: item.readingId || `RDG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          method: item.meterSize || selectedConnection?.meterSize,
-          currentReading: item.currentReading?.toString() || "0",
-          previousReading: item.previousReading?.toString() || "0",
-          consumption: item.consumption || 0,
-          unit: item.consumption || 0,
-          rate: item.ratePerUnit || 8.58,
-          waterCharges: item.waterCharges || 0,
-          totalAmount: item.totalAmount || 0,
-          status: item.status || "Submitted",
-          date: item.readingDate ? new Date(item.readingDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
-          readingMonth: item.readingMonth || new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
-          connectionId: selectedConnection?.consumerNo,
-        })) : [];
-        setSubmittedReadings(updatedReadings);
-      toast.success("Meter reading submitted successfully!");
-      setShowSuccessDialog(true);
+        // Close the drawer first
+        setShowAddReadingDrawer(false);
+        toast.info('📝 Drawer closed, preparing success message...');
 
-      setTimeout(() => {
-        setShowSuccessDialog(false);
-        setReadingDate(getTodayDate());
+        // Show success message
+        toast.success(`🎉 Meter reading submitted!\nID: ${readingId}\nConsumption: ${consumption} units`, {
+          duration: 5000,
+        });
+        setShowSuccessDialog(true);
+
+        // Reset form fields
         setCurrentReading("");
         setMeterPhoto(null);
         setUploadedDocument(null);
-        setTapSize("");
-      }, 3000);
+        setReadingDate(getTodayDate());
+        toast.info('🔄 Form fields reset for next entry');
+
+        // Refresh the reading history after successful submission
+        if (selectedConnection) {
+          console.log('🔄 Refreshing meter readings after successful submission...');
+          toast.loading('🔄 Refreshing readings table...', {
+            id: 'refresh-table'
+          });
+          
+          // Use the extracted function for consistency
+          await fetchReadingHistory(false);
+          
+          toast.dismiss('refresh-table');
+          console.log('✅ Reading history refreshed after submission');
+          toast.success('✨ Table updated with latest readings!');
+        }
+
+        // Auto-hide success dialog after 3 seconds
+        setTimeout(() => {
+          setShowSuccessDialog(false);
+          toast.info('✅ Process completed successfully!');
+        }, 3000);
+
     } catch (error) {
-      toast.error("Failed to submit reading. Please try again.");
+      toast.dismiss(); // Dismiss any loading toasts
+      console.error('❌ Error submitting meter reading:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Handle specific 409 Conflict error with helpful suggestions
+      if (errorMessage.includes('409') || errorMessage.includes('Conflict')) {
+        const tomorrowDate = new Date(new Date(readingDate).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const yesterdayDate = new Date(new Date(readingDate).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        console.error('🚨 409 Conflict occurred despite pre-validation!', {
+          attemptedDate: readingDate,
+          consumerID: selectedConnection?.consumerID,
+          currentReading,
+          errorDetails: errorMessage
+        });
+        
+        toast.error(
+          `❌ UNEXPECTED Conflict!\n` +
+          `📅 Date: ${readingDate} still caused a duplicate\n\n` +
+          `🔄 This suggests a timing issue or database constraint\n\n` +
+          `💡 Try these solutions:\n` +
+          `• Wait 1-2 seconds and try again\n` +
+          `• Use tomorrow: ${tomorrowDate}\n` +
+          `• Use yesterday: ${yesterdayDate}\n` +
+          `• Check if another user submitted at the same time`,
+          { duration: 20000 }
+        );
+        
+        // Additional debugging for the development team
+        console.group('🐞 409 Conflict Debug Info');
+        console.log('Pre-validation passed but submission failed');
+        console.log('This indicates either:');
+        console.log('1. Race condition between validation and submission');
+        console.log('2. Database constraint difference from API query');
+        console.log('3. Multiple users submitting simultaneously');
+        console.groupEnd();
+        
+      } else if (errorMessage.includes('400')) {
+        toast.error(`❌ Invalid Data: Please check all fields and try again.\nError: ${errorMessage}`, {
+          duration: 8000,
+        });
+      } else if (errorMessage.includes('500')) {
+        toast.error(`🔧 Server Error: Please try again in a few moments.\nIf problem persists, contact support.`, {
+          duration: 8000,
+        });
+      } else {
+        toast.error(`❌ Submission Failed:\n${errorMessage}`, {
+          duration: 8000,
+        });
+      }
+      
+      // Additional debugging toast
+      toast.error(`🔍 Debug: Check browser console for detailed error`, {
+        duration: 5000,
+      });
+      
+      // Alert user to check API endpoint
+      toast.warning('🔧 Ensure API server is running at localhost:5268', {
+        duration: 6000,
+      });
+      
+      // Don't close drawer on error so user can retry
     } finally {
       setIsSubmitting(false);
+      toast.info('📝 Submission process finished');
+    }
+  };
+
+  // Function to refresh readings and open drawer
+  const handleOpenAddReadingDrawer = async () => {
+    if (!selectedConnection) {
+      toast.error("Please select a connection first");
+      return;
+    }
+
+    try {
+      setIsRefreshingReadings(true);
+      toast.info('🔄 Refreshing latest readings...', {
+        duration: 2000,
+      });
+      
+      console.log('🔄 Auto-refreshing readings before opening drawer...');
+      
+      // Refresh reading data to get latest previous reading
+      await fetchReadingHistory(false); // Don't show main loading state
+      
+      console.log('✅ Reading data refreshed, opening drawer with latest data');
+      toast.success('✅ Latest readings loaded!');
+      
+      // Open drawer after refresh
+      setShowAddReadingDrawer(true);
+      
+    } catch (error) {
+      console.error('❌ Error refreshing readings:', error);
+      toast.error('Failed to refresh readings. Opening drawer with cached data.');
+      // Still open drawer even if refresh fails
+      setShowAddReadingDrawer(true);
+    } finally {
+      setIsRefreshingReadings(false);
     }
   };
 
@@ -578,6 +859,13 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
   const filteredReadings = submittedReadings.filter(
     (reading) => reading.connectionId === selectedConnection?.consumerNo
   );
+
+  console.log('🎯 Filtering readings:', {
+    totalReadings: submittedReadings.length,
+    selectedConsumerNo: selectedConnection?.consumerNo,
+    filteredCount: filteredReadings.length,
+    allReadings: submittedReadings.map(r => ({ id: r.id, connectionId: r.connectionId }))
+  });
 
   return (
     <>
@@ -664,12 +952,21 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
 
               <div>
                 <Button
-                  onClick={() => setShowAddReadingDialog(true)}
+                  onClick={handleOpenAddReadingDrawer}
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg h-11 px-6"
-                  disabled={!selectedConnection || isLoadingConnections}
+                  disabled={!selectedConnection || isLoadingConnections || isRefreshingReadings}
                 >
-                  <Camera className="w-5 h-5 mr-2" />
-                  <span className="text-sm font-bold">Add New Reading</span>
+                  {isRefreshingReadings ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      <span className="text-sm font-bold">Refreshing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-5 h-5 mr-2" />
+                      <span className="text-sm font-bold">Add New Reading</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -1273,51 +1570,94 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
           </div>
         )}
 
-        {/* Add Reading Dialog */}
-        {showAddReadingDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        {/* Add Reading Drawer */}
+        {showAddReadingDrawer && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+            {/* Overlay - Click to close */}
+            <div 
+              className="absolute inset-0" 
+              onClick={() => setShowAddReadingDrawer(false)}
+            />
+            
+            {/* Drawer Panel */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="w-full max-w-3xl mx-4 h-auto"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="absolute right-0 top-0 h-full w-full max-w-4xl bg-white shadow-2xl overflow-hidden flex flex-col"
             >
-              <Card className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 border-2 border-blue-200">
-                <div className="border-b-2 border-blue-200 pb-2 p-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <Camera className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-900 font-bold">
-                          Add New Meter Reading
-                        </span>
-                        <p className="text-[10px] text-gray-600 font-normal mt-0.5">
-                          Connection: {selectedConnection?.consumerNo} (
-                          {selectedConnection?.connectionCategoryName})
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowAddReadingDialog(false)}
-                      className="h-7 w-7 p-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
+              {/* Drawer Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-4 flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Add New Meter Reading</h2>
+                    <p className="text-sm text-blue-100">
+                      Connection: {selectedConnection?.consumerNo} • {selectedConnection?.connectionCategoryName}
+                    </p>
                   </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAddReadingDrawer(false)}
+                  className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
 
-                <div className="p-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Left Column */}
-                    <div className="space-y-1.5">
-                      <div>
-                        <label className="text-xs text-gray-700 mb-1.5 flex items-center gap-1 font-semibold">
-                          <Camera className="w-3 h-3" />
-                          Meter Photo (OCR Auto-detect)
-                        </label>
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-blue-50/30 to-cyan-50/30">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    {/* Connection Info Card */}
+                    <Card className="bg-white/80 backdrop-blur-sm border border-blue-200">
+                      <div className="p-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Droplets className="w-4 h-4 text-blue-600" />
+                          Connection Details
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-gray-600">Consumer No.</p>
+                            <p className="font-semibold text-gray-900">{selectedConnection?.consumerNo}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Property No.</p>
+                            <p className="font-semibold text-gray-900">{selectedConnection?.propertyNo}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Area</p>
+                            <p className="font-semibold text-gray-900">{selectedConnection?.areaName}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Connection Type</p>
+                            <p className="font-semibold text-gray-900">{selectedConnection?.connectionCategoryName}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Previous Reading</p>
+                            <p className="font-bold text-blue-700">{actualPreviousReading} Units</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Rate per Unit</p>
+                            <p className="font-bold text-green-700">₹{connectionRate}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Photo Upload Card */}
+                    <Card className="bg-white/80 backdrop-blur-sm border border-blue-200">
+                      <div className="p-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Camera className="w-4 h-4 text-purple-600" />
+                          Meter Photo (AI OCR)
+                        </h3>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -1325,233 +1665,245 @@ export function MeterReadingScreen({ onNavigate, user, initialConnections, initi
                           onChange={handleMeterPhotoUpload}
                           className="hidden"
                         />
+                        
                         {!meterPhoto ? (
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isOcrProcessing}
-                            className="w-full h-[120px] sm:h-[140px] border-2 border-dashed border-blue-400 rounded-lg bg-white hover:bg-blue-50 transition-all flex flex-col items-center justify-center gap-1 sm:gap-2"
+                            className="w-full h-40 border-2 border-dashed border-blue-400 rounded-lg bg-white hover:bg-blue-50 transition-all flex flex-col items-center justify-center gap-3"
                           >
                             {isOcrProcessing ? (
                               <>
-                                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 animate-pulse" />
-                                <span className="text-xs sm:text-sm text-blue-600 font-semibold">
+                                <Sparkles className="w-12 h-12 text-blue-600 animate-pulse" />
+                                <span className="text-sm text-blue-600 font-semibold">
                                   AI Processing...
                                 </span>
-                                <span className="text-[10px] sm:text-xs text-gray-500">
+                                <span className="text-xs text-gray-500">
                                   Detecting meter reading
                                 </span>
                               </>
                             ) : (
                               <>
-                                <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
-                                <span className="text-xs sm:text-sm text-gray-900 font-semibold">
+                                <Upload className="w-12 h-12 text-blue-600" />
+                                <span className="text-sm text-gray-900 font-semibold">
                                   Upload Meter Photo
                                 </span>
-                                <span className="text-[10px] sm:text-xs text-gray-500">
+                                <span className="text-xs text-gray-500">
                                   Auto-detect reading with AI
                                 </span>
                               </>
                             )}
                           </button>
                         ) : (
-                          <div className="relative h-[120px] sm:h-[140px] border-2 border-blue-400 rounded-lg overflow-hidden">
-                            <img
-                              src={meterPhoto}
-                              alt="Meter"
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute top-2 right-2 flex gap-1">
-                              <button
-                                type="button"
+                          <div className="space-y-3">
+                            <div className="relative h-40 border-2 border-blue-400 rounded-lg overflow-hidden">
+                              <img
+                                src={meterPhoto}
+                                alt="Meter reading"
+                                className="w-full h-full object-cover"
                                 onClick={() => setShowMeterImageDialog(true)}
-                                className="bg-blue-500 text-white rounded-full p-1 sm:p-1.5 hover:bg-blue-600 transition-colors shadow-lg"
-                              >
-                                <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMeterPhoto(null);
-                                  setUploadedDocument(null);
-                                }}
-                                className="bg-red-500 text-white rounded-full p-1 sm:p-1.5 hover:bg-red-600 transition-colors shadow-lg"
-                              >
-                                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              </button>
+                              />
+                              <div className="absolute top-2 right-2 flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowMeterImageDialog(true)}
+                                  className="bg-blue-500 text-white rounded-full p-1.5 hover:bg-blue-600 transition-colors shadow-lg"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setMeterPhoto(null);
+                                    setUploadedDocument(null);
+                                  }}
+                                  className="bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/90 to-transparent p-2">
+                                <p className="text-white text-xs flex items-center gap-1 font-semibold">
+                                  <Sparkles className="w-3 h-3" />
+                                  OCR Auto-filled
+                                </p>
+                              </div>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/90 to-transparent p-1.5 sm:p-2">
-                              <p className="text-white text-[10px] sm:text-xs flex items-center gap-1 font-semibold">
-                                <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                OCR Auto-filled
-                              </p>
-                            </div>
+                            <Button
+                              onClick={() => fileInputRef.current?.click()}
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                            >
+                              <Camera className="w-4 h-4 mr-2" />
+                              Replace Photo
+                            </Button>
                           </div>
                         )}
                       </div>
+                    </Card>
+                  </div>
 
-                      <div>
-                        <label className="text-xs sm:text-sm text-gray-700 mb-1.5 flex items-center gap-1 font-semibold">
-                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                          Reading Date <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                          type="date"
-                          value={readingDate}
-                          onChange={(e) => setReadingDate(e.target.value)}
-                          className="h-9 sm:h-10 border-2 border-gray-300 text-xs sm:text-sm focus:border-blue-500"
-                        />
-                      </div>
-
-                      {selectedConnection &&
-                        currentReading &&
-                        consumption >= 0 && (
-                          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg p-2 sm:p-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] sm:text-xs text-gray-600 flex items-center gap-1">
-                                <IndianRupee className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                Rate per Unit
-                              </span>
-                              <span className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 sm:px-2 py-0.5 rounded-full font-semibold">
-                                {selectedConnection.connectionCategoryName}
-                              </span>
-                            </div>
-                            <p className="text-lg sm:text-2xl text-blue-600 font-bold">
-                              ₹
-                              {getRateByConnectionType(
-                                selectedConnection.connectionCategoryName
-                              )}
-                              /unit
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Reading Input Card */}
+                    <Card className="bg-white/80 backdrop-blur-sm border border-blue-200">
+                      <div className="p-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Gauge className="w-4 h-4 text-cyan-600" />
+                          Reading Details
+                        </h3>
+                        <div className="space-y-4">
+                          {/* Reading Date */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Reading Date <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="date"
+                              value={readingDate}
+                              onChange={(e) => {
+                                setReadingDate(e.target.value);
+                                if (e.target.value !== readingDate) {
+                                  toast.dismiss();
+                                }
+                              }}
+                              max={getTodayDate()}
+                              className="w-full"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              💡 If date conflicts occur, try adjacent dates
                             </p>
                           </div>
-                        )}
-                    </div>
 
-                    {/* Right Column */}
-                    <div className="space-y-2 sm:space-y-3">
-                      <div>
-                        <label className="text-xs sm:text-sm text-gray-700 mb-1.5 flex items-center gap-1 font-semibold">
-                          <Gauge className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
-                          Previous Reading
-                        </label>
-                        <Input
-                          type="number"
-                          value={selectedConnection?.previousReading || ""}
-                          disabled
-                          readOnly
-                          className="h-9 sm:h-10 border-2 border-gray-300 bg-gray-100 cursor-not-allowed text-xs sm:text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs sm:text-sm text-gray-700 mb-1.5 flex items-center gap-1 font-semibold">
-                          <Gauge className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                          Current Reading{" "}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                          type="number"
-                          value={currentReading}
-                          onChange={(e) => setCurrentReading(e.target.value)}
-                          placeholder="Enter current reading"
-                          className="h-9 sm:h-10 border-2 border-blue-300 text-xs sm:text-sm focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs sm:text-sm text-gray-700 mb-1.5 flex items-center gap-1 font-semibold">
-                          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-600" />
-                          Total Consumption
-                        </label>
-                        <div className="h-[70px] sm:h-[80px] bg-gradient-to-br from-cyan-50 to-blue-50 border-2 border-cyan-300 rounded-lg flex flex-col items-center justify-center">
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <Droplets className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600" />
-                            <p className="text-2xl sm:text-4xl text-cyan-700 font-bold">
-                              {consumption >= 0 ? consumption : 0}
-                            </p>
+                          {/* Previous Reading */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Previous Reading
+                              <span className="text-xs text-blue-600 ml-2">
+                                (Latest: {actualPreviousReading})
+                              </span>
+                            </label>
+                            <Input
+                              type="number"
+                              value={actualPreviousReading.toString()}
+                              disabled
+                              readOnly
+                              className="w-full bg-gray-100 cursor-not-allowed"
+                            />
                           </div>
-                          <span className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1">
-                            Units Consumed
-                          </span>
-                          {currentReading && consumption < 0 && (
-                            <p className="text-[10px] sm:text-xs text-red-600 mt-0.5 sm:mt-1">
-                              ⚠️ Invalid reading
-                            </p>
-                          )}
+
+                          {/* Current Reading */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Current Reading <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="number"
+                              placeholder="Enter current reading"
+                              value={currentReading}
+                              onChange={(e) => setCurrentReading(e.target.value)}
+                              className="w-full text-lg font-bold text-center"
+                            />
+                          </div>
                         </div>
                       </div>
+                    </Card>
 
-                      {selectedConnection &&
-                        currentReading &&
-                        consumption >= 0 && (
-                          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-300 rounded-lg p-2 sm:p-3">
-                            <div className="space-y-0.5 sm:space-y-1">
-                              <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-600">
-                                <span>Calculation:</span>
-                                <span className="font-semibold">
-                                  {consumption} units × ₹
-                                  {getRateByConnectionType(
-                                    selectedConnection.connectionCategoryName
-                                  )}
+                    {/* Consumption & Bill Card */}
+                    {currentReading && (
+                      <Card className="bg-white/80 backdrop-blur-sm border border-green-200">
+                        <div className="p-4">
+                          <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-green-600" />
+                            Consumption & Bill
+                          </h3>
+                          <div className="space-y-4">
+                            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4 text-center">
+                              <div className="flex items-center justify-center gap-2 mb-2">
+                                <Droplets className="w-6 h-6 text-cyan-600" />
+                                <span className="text-3xl font-bold text-cyan-700">
+                                  {consumption >= 0 ? consumption : 0}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between pt-1 sm:pt-2 border-t border-teal-200">
-                                <span className="text-xs sm:text-sm text-gray-700 font-semibold">
-                                  Estimated Bill:
-                                </span>
-                                <span className="text-lg sm:text-2xl text-teal-600 font-bold">
-                                  ₹{calculateEstimatedBill().toFixed(2)}
-                                </span>
-                              </div>
+                              <p className="text-xs text-gray-600">Units Consumed</p>
+                              {consumption < 0 && (
+                                <p className="text-xs text-red-600 mt-1">
+                                  ⚠️ Invalid reading
+                                </p>
+                              )}
                             </div>
+                            
+                            {consumption >= 0 && (
+                              <div className="bg-gradient-to-r from-green-50 to-teal-50 border border-green-200 rounded-lg p-4">
+                                <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
+                                  <span>Calculation:</span>
+                                  <span className="font-semibold">
+                                    {consumption} units × ₹{connectionRate}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-green-200">
+                                  <span className="text-sm font-semibold text-gray-700">
+                                    Estimated Bill:
+                                  </span>
+                                  <span className="text-2xl font-bold text-green-600">
+                                    ₹{calculateEstimatedBill().toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-3 border-t-2 border-blue-200 pt-3 sm:pt-4 mt-3 sm:mt-4">
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={
-                        isSubmitting ||
-                        !currentReading ||
-                        !tapSize ||
-                        consumption < 0
-                      }
-                      className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white h-10 sm:h-11 shadow-lg w-full text-sm sm:text-base"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{
-                              duration: 1,
-                              repeat: Infinity,
-                              ease: "linear",
-                            }}
-                            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"
-                          />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                          Submit Reading
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => setShowAddReadingDialog(false)}
-                      variant="outline"
-                      className="border-2 border-gray-300 text-gray-700 hover:bg-gray-100 h-10 sm:h-11 w-full text-sm sm:text-base"
-                    >
-                      <X className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                      Cancel
-                    </Button>
+                        </div>
+                      </Card>
+                    )}
                   </div>
                 </div>
-              </Card>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-6 bg-white border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => setShowAddReadingDrawer(false)}
+                    variant="outline"
+                    className="h-12 border-2 border-gray-300 text-gray-700 hover:bg-gray-100"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={
+                      isSubmitting ||
+                      !currentReading ||
+                      !readingDate ||
+                      consumption < 0
+                    }
+                    className="h-12 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
+                          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                        />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Submit Reading
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

@@ -7,6 +7,9 @@
  * - fetchMeterReadings: Get meter reading history for a connection
  * - submitMeterReading: Submit new meter reading with photo
  */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5268';
+
 export interface WaterConsumerSearchParams {
   query: string; // mobile, property, consumer number, or owner name
 }
@@ -29,7 +32,7 @@ function detectQueryType(query: string) {
 }
 
 function buildApiUrl(query: string): string {
-  const baseUrl = "http://localhost:5268/api/CitizenLogin";
+  const baseUrl = `${API_BASE_URL}/api/CitizenLogin`;
   const queryType = detectQueryType(query);
   const cleanQuery = query.trim();
   
@@ -88,7 +91,7 @@ export async function searchConsumer(params: WaterConsumerSearchParams) {
  * Fetch meter reading history for a specific connection
  */
 export async function fetchMeterReadings(connectionId: string) {
-  const url = `http://localhost:5268/api/MeterReadings?ConnectionId=${connectionId}`;
+  const url = `${API_BASE_URL}/api/MeterReadings?ConnectionId=${connectionId}`;
   
   const res = await fetch(url, {
     method: "GET",
@@ -106,7 +109,7 @@ export async function fetchMeterReadings(connectionId: string) {
  * Submit a new meter reading
  */
 export async function submitMeterReading(formData: FormData) {
-  const url = "http://localhost:5268/api/MeterReadings";
+  const url = `${API_BASE_URL}/api/MeterReadings`;
   
   const res = await fetch(url, {
     method: "POST",
