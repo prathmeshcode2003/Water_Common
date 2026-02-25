@@ -343,9 +343,9 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
       ></motion.div>
 
       {/* Dashboard Main Layout */}
-      <div className="flex flex-col lg:flex-row gap-3 items-stretch">
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch relative">
         {/* Property Dropdown Selector */}
-        <Card className="w-full lg:w-[260px] bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 p-3 shadow-md flex-shrink-0 px-[12px] py-[2px]">
+        <Card className="w-full lg:w-[260px] bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 shadow-md flex-shrink-0 flex items-center px-3 h-14 relative z-20">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
               <Building className="w-4 h-4 text-white" />
@@ -355,25 +355,22 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
                 Select Property
               </label>
               <Select value={currentProperty} onValueChange={handlePropertySwitch}>
-                <SelectTrigger className="h-9 bg-white border-2 border-blue-300 hover:border-blue-400 focus:border-blue-500 font-semibold text-blue-900 rounded-lg shadow-sm">
+                <SelectTrigger className="h-10 bg-white border-2 border-blue-300 hover:border-blue-400 focus:border-blue-500 font-semibold text-blue-900 rounded-lg shadow-sm">
                   <SelectValue>
-                    {/* Always show property number and address if selected */}
                     {(() => {
                       const selectedProp = user.allProperties.find((p: any) => p.propertyNumber === currentProperty);
                       if (selectedProp) {
                         return (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 overflow-hidden">
                             <Home className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                            <span className="font-bold text-blue-900 text-sm flex-shrink-0">{selectedProp.propertyNumber}</span>
-                            <span className="text-gray-400 flex-shrink-0">•</span>
-                            <span className="text-xs text-gray-600 truncate">{selectedProp.address}</span>
+                            <span className="font-bold text-blue-900 text-sm truncate">{selectedProp.propertyNumber}</span>
                           </div>
                         );
                       }
                       return (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 overflow-hidden">
                           <Home className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                          <span className="font-bold text-blue-900 text-sm flex-shrink-0">Select a property</span>
+                          <span className="font-bold text-blue-900 text-sm">Select Property</span>
                         </div>
                       );
                     })()}
@@ -410,8 +407,8 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
         </Card>
 
         {/* News Marquee Section - Now visible on all screens */}
-        <Card className="flex-1 min-w-0 h-fit bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 border-2 border-blue-300 shadow-md overflow-hidden p-[0px]">
-          <div className="flex items-center gap-3 h-fit p-3 px-[0px] py-[0px] mx-[0px] my-[1px]">
+        <Card className="flex-1 min-w-0 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 border-2 border-blue-300 shadow-md overflow-hidden p-0 flex items-center h-14 relative z-10">
+          <div className="flex items-center gap-3 w-full px-4 h-full">
             <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
               <Megaphone className="w-4 h-4 text-white" />
             </div>
@@ -497,7 +494,7 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
         </Card>
 
         {/* Quick Action Buttons */}
-        <div className="w-full lg:w-auto flex flex-wrap gap-2 lg:gap-2 flex-shrink-0 p-[0px]">
+        <div className="w-full lg:w-auto flex flex-wrap lg:flex-nowrap gap-2 flex-shrink-0 h-14">
           {quickActions.map((action, index) => (
             <motion.div
               key={index}
@@ -509,7 +506,7 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
               }}
             >
               <Button
-                className={`w-auto px-3 py-4 rounded-xl bg-gradient-to-r ${action.color} border-0 shadow-lg hover:shadow-2xl text-white transition-all relative overflow-hidden group h-auto`}
+                className={`w-full lg:w-auto px-4 rounded-xl bg-gradient-to-r ${action.color} border-0 shadow-lg hover:shadow-2xl text-white transition-all relative overflow-hidden group h-full`}
                 onClick={action.action}
               >
                 <motion.div
