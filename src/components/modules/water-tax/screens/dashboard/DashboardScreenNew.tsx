@@ -864,6 +864,7 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
       {/* New Grievance Form */}
       <NewGrievanceForm
         open={showNewGrievanceForm}
+        user={user}
         onClose={() => setShowNewGrievanceForm(false)}
         onSubmit={(data) => {
           console.log("New grievance registered:", data);

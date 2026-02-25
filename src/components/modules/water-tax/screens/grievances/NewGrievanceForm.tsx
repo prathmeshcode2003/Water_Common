@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Drawer } from "@/components/common/Drawer";
 import { Card } from "@/components/common/Card";
@@ -27,72 +27,62 @@ import {
   Droplets,
 } from "lucide-react";
 import { toast } from "sonner";
+import { searchConsumer } from "@/services/waterConsumerService";
 
 interface NewGrievanceFormProps {
   open: boolean;
+  user: any;
   onClose: () => void;
   onSubmit: (data: any) => void;
 }
 
 export function NewGrievanceForm({
   open,
+  user,
   onClose,
   onSubmit,
 }: NewGrievanceFormProps) {
-  // TODO: API Integration - Fetch user's connections from backend
-  // This mock data should be replaced with actual API call to get connections list
-  // API Endpoint: GET /api/water-tax/citizen/connections
-  const [availableConnections] = useState([
-    {
-      id: "CON-2026-001",
-      consumerNo: "CON-2026-001",
-      upicId: "UPIC123456789",
-      propertyNo: "PROP-2026-001",
-      address: "123, MG Road, Sector 12, Bangalore - 560001",
-      zoneNo: "Zone A",
-      wardNo: "5",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      connectionType: "Commercial",
-      category: "Meter",
-      status: "Active",
-      tapSize: "25mm (1 inch)",
-    },
-    {
-      id: "CON-2026-002",
-      consumerNo: "CON-2026-002",
-      upicId: "UPIC123456789",
-      propertyNo: "PROP-2026-001",
-      address: "123, MG Road, Sector 12, Bangalore - 560001",
-      zoneNo: "Zone A",
-      wardNo: "5",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      connectionType: "Domestic",
-      category: "Non-Meter",
-      status: "Active",
-      tapSize: "15mm (1/2 inch)",
-    },
-    {
-      id: "CON-2026-003",
-      consumerNo: "CON-2026-003",
-      upicId: "UPIC123456789",
-      propertyNo: "PROP-2026-001",
-      address: "123, MG Road, Sector 12, Bangalore - 560001",
-      zoneNo: "Zone A",
-      wardNo: "5",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      connectionType: "Industrial",
-      category: "Meter",
-      status: "Active",
-      tapSize: "50mm (2 inch)",
-    },
-  ]);
+  const [availableConnections, setAvailableConnections] = useState<any[]>([]);
+  const [isLoadingConnections, setIsLoadingConnections] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  // Fetch connections from API
+  useEffect(() => {
+    const fetchConnections = async () => {
+      if (!open || !user) return;
+
+      try {
+        setIsLoadingConnections(true);
+        setConnectionError(null);
+
+        // Try multiple possible mobile number properties
+        const mobileNo = user?.mobileNo || user?.mobile || user?.phoneNumber || user?.citizenId;
+
+        if (!mobileNo) {
+          throw new Error('Mobile number not found in session.');
+        }
+
+        const data = await searchConsumer({ query: mobileNo });
+
+        if (data.items && Array.isArray(data.items)) {
+          setAvailableConnections(data.items);
+        } else {
+          setAvailableConnections([]);
+        }
+      } catch (error) {
+        console.error('Error fetching connections:', error);
+        setConnectionError(error instanceof Error ? error.message : 'Failed to fetch connections');
+      } finally {
+        setIsLoadingConnections(false);
+      }
+    };
+
+    fetchConnections();
+  }, [open, user]);
 
   const [selectedConnectionId, setSelectedConnectionId] = useState("");
   const [selectedConsumer, setSelectedConsumer] = useState<any>(null);
-  const [editableMobileNumber, setEditableMobileNumber] = useState("243424");
+  const [editableMobileNumber, setEditableMobileNumber] = useState("");
   const [applicationType, setApplicationType] = useState("");
   const [applicationDate, setApplicationDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -109,36 +99,34 @@ export function NewGrievanceForm({
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [grievanceNumber, setGrievanceNumber] = useState("");
 
-  const handleConnectionSelect = async (connectionId: string) => {
+  const handleConnectionSelect = (connectionId: string) => {
     setSelectedConnectionId(connectionId);
 
-    // TODO: API Integration - Fetch detailed consumer/property details for selected connection
-    // This should make an API call to get complete details including:
-    // - Consumer details (name, email, mobile, etc.)
-    // - Property details (zone, ward, property no, address, etc.)
-    // - Connection details (type, category, tap size, status, etc.)
-    // API Endpoint: GET /api/water-tax/citizen/connection-details/{connectionId}
-    // Response should include all editable and non-editable fields
-
-    // For now, using mock data from local state
     const connection = availableConnections.find(
-      (conn) => conn.id === connectionId
+      (conn) => (conn.id || conn.consumerID)?.toString() === connectionId
     );
+
     if (connection) {
-      setSelectedConsumer(connection);
+      // Map API fields to form fields
+      const mappedConsumer = {
+        ...connection,
+        consumerNo: connection.consumerNo,
+        zoneNo: connection.wardName || connection.areaName || "", // Adjust based on API structure
+        wardNo: connection.wardName || "",
+        propertyNo: connection.propertyNo || "",
+        address: connection.addressEnglish || connection.address || "",
+        name: connection.consumerNameEnglish || connection.consumerName || "",
+        email: connection.emailId || "",
+        connectionType: connection.connectionCategoryName || "",
+        category: connection.connectionTypeName || "",
+        status: connection.isActive ? "Active" : "Inactive",
+        tapSize: connection.pipeSizeName || "",
+      };
+
+      setSelectedConsumer(mappedConsumer);
+      setEditableMobileNumber(connection.mobileNo || "");
       toast.success(`Connection ${connection.consumerNo} selected`);
     }
-
-    // Future implementation:
-    // try {
-    //   const response = await fetch(`/api/water-tax/citizen/connection-details/${connectionId}`);
-    //   const data = await response.json();
-    //   setSelectedConsumer(data);
-    //   setEditableMobileNumber(data.mobile || '');
-    //   toast.success(`Connection ${data.consumerNo} selected`);
-    // } catch (error) {
-    //   toast.error('Failed to fetch connection details');
-    // }
   };
 
   const handleSubmit = async () => {
@@ -239,18 +227,31 @@ export function NewGrievanceForm({
             <Droplets className="w-4 h-4 text-white" />
             Select Connection <span className="text-red-100">*</span>
           </label>
-          <select
-            value={selectedConnectionId}
-            onChange={(e) => handleConnectionSelect(e.target.value)}
-            className="w-full h-10 border-2 border-white/60 bg-white hover:bg-gray-50 transition-colors shadow-md rounded-md px-3"
-          >
-            <option value="">Choose connection...</option>
-            {availableConnections.map((connection) => (
-              <option key={connection.id} value={connection.id}>
-                {connection.consumerNo} | {connection.connectionType} | {connection.category}
+          <div className="relative">
+            <select
+              value={selectedConnectionId}
+              onChange={(e) => handleConnectionSelect(e.target.value)}
+              disabled={isLoadingConnections}
+              className="w-full h-10 border-2 border-white/60 bg-white hover:bg-gray-50 transition-colors shadow-md rounded-md px-3 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {isLoadingConnections ? "Loading connections..." : "Choose connection..."}
               </option>
-            ))}
-          </select>
+              {!isLoadingConnections && availableConnections.map((connection) => (
+                <option key={connection.consumerID} value={connection.consumerID}>
+                  {connection.consumerNo} | {connection.connectionTypeName} | {connection.connectionCategoryName}
+                </option>
+              ))}
+            </select>
+            {isLoadingConnections && (
+              <div className="absolute right-3 top-2.5">
+                <Loader2 className="w-5 h-5 animate-spin text-cyan-600" />
+              </div>
+            )}
+          </div>
+          {connectionError && (
+            <p className="text-[10px] text-red-100 mt-1 font-semibold">{connectionError}</p>
+          )}
         </div>
 
         {/* Main Content */}
