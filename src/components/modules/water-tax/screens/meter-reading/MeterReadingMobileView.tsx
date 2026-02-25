@@ -23,6 +23,8 @@ interface MeterReadingMobileViewProps {
     selectedConnection: any;
     onConnectionSelect: (id: string) => void;
     readingHistory: any[];
+    isLoading?: boolean;
+    error?: string | null;
 }
 
 export function MeterReadingMobileView({
@@ -30,6 +32,8 @@ export function MeterReadingMobileView({
     selectedConnection,
     onConnectionSelect,
     readingHistory,
+    isLoading = false,
+    error = null,
 }: MeterReadingMobileViewProps) {
     const [showAddReadingDialog, setShowAddReadingDialog] = useState(false);
     const [currentReading, setCurrentReading] = useState("");
@@ -145,13 +149,14 @@ export function MeterReadingMobileView({
 
                 {/* Connection Selector */}
                 <select
-                    value={selectedConnection?.id || ""}
+                    value={selectedConnection?.consumerID || ""}
                     onChange={(e) => onConnectionSelect(e.target.value)}
                     className="w-full bg-white text-gray-900 rounded-lg px-3 py-2.5 text-sm font-semibold shadow-md"
+                    disabled={isLoading}
                 >
                     {connections.map((conn) => (
-                        <option key={conn.id} value={conn.id}>
-                            {conn.consumerNo} - {conn.connectionType}
+                        <option key={conn.consumerID} value={conn.consumerID}>
+                            {conn.propertyNo} - {conn.consumerNo} - {conn.connectionCategoryName}
                         </option>
                     ))}
                 </select>
@@ -181,13 +186,13 @@ export function MeterReadingMobileView({
                             <div>
                                 <p className="text-xs text-gray-600">Type</p>
                                 <p className="text-sm font-bold text-gray-900">
-                                    {selectedConnection.connectionType}
+                                    {selectedConnection.connectionCategoryName}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-600">Meter No.</p>
                                 <p className="text-sm font-bold text-gray-900">
-                                    {selectedConnection.meterNo}
+                                    {selectedConnection.meterNumber}
                                 </p>
                             </div>
                             <div>

@@ -95,7 +95,8 @@ export function SharedWrapper({ screen, user }: SharedWrapperProps) {
         return <PassbookScreen user={user} onNavigate={handleNavigate} />;
 
       case "submitReading":
-        return <MeterReadingScreen onNavigate={handleNavigate} />;
+        if (!user) return <NoDataFallback screenName="Submit Meter Reading" />;
+        return <MeterReadingScreen onNavigate={handleNavigate} user={user} />;
 
       case "calculator":
         return <BillCalculatorScreen onNavigate={handleNavigate} />;
