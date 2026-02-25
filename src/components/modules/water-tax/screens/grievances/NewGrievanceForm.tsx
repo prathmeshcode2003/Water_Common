@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Drawer } from '@/components/common';
+import { Drawer } from "@/components/common/Drawer";
 import { Card } from "@/components/common/Card";
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
