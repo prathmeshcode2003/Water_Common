@@ -34,8 +34,11 @@ import {
 } from "lucide-react";
 import { clearCitizenSession } from "@/app/[locale]/water-tax/actions";
 import { useRouter } from "next/navigation";
-import { Drawer } from "@/components/common";
+import { Drawer } from "@/components/common/Drawer";
+import { Dialog, DialogContent } from "@/components/common/Water.Citizen";
 import { NewConnectionFormContent } from "@/components/modules/water-tax/screens/shared/NewConnectionForm";
+import { TrackStatus } from "@/components/modules/water-tax/screens/shared/TrackStatus";
+import { NewGrievanceForm } from "@/components/modules/water-tax/screens/grievances/NewGrievanceForm";
 
 // Dummy components for tabs (replace with actual implementations)
 const MyConnections = () => <div>MyConnections Component</div>;
@@ -59,7 +62,7 @@ const WaterBillPassbook = ({ connections }: { connections: any[] }) => (
           </tr>
         </thead>
         <tbody>
-          {connections.map((conn) => (
+          {connections.map((conn: any) => (
             <tr key={conn.id || conn.consumerID || conn.consumerNo}>
               <td className="px-2 py-1 border">{conn.consumerNo || conn.consumerNumber || conn.consumerID || "N/A"}</td>
               <td className="px-2 py-1 border">{conn.propertyNo || conn.propertyNumber || "N/A"}</td>
@@ -98,10 +101,8 @@ function DetailedConnectionCard({
         <div className="flex items-center gap-3 flex-1">
           {/* Always show checkbox for payment selection */}
           <Checkbox
-            id={`conn-${id}`}
             checked={isSelected}
-            onCheckedChange={(checked) => handleConnectionCheck(id, checked as boolean)}
-            onClick={(e) => e.stopPropagation()}
+            onChange={(checked: boolean) => handleConnectionCheck(id, checked)}
             className="data-[state=checked]:bg-green-500 bg-white border-2 border-gray-300"
           />
           <div className="flex-1">
@@ -236,6 +237,8 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
   const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
   const [selectedUsageConnection, setSelectedUsageConnection] = useState<string>("all");
   const [showNewConnectionDialog, setShowNewConnectionDialog] = useState(false);
+  const [showTrackStatusDrawer, setShowTrackStatusDrawer] = useState(false);
+  const [showNewGrievanceForm, setShowNewGrievanceForm] = useState(false);
 
   const router = useRouter();
 
@@ -249,24 +252,24 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
   // Use only real API data
   const selectedPropertyNumber = currentProperty || user?.propertyNumber || user?.selectedProperty;
   const allConnectionDetails = user.connections || [];
-  const userConnections = allConnectionDetails.filter((conn) =>
+  const userConnections = allConnectionDetails.filter((conn: any) =>
     conn.propertyNumber === selectedPropertyNumber ||
     conn.propertyNo === selectedPropertyNumber
   );
 
   // Only connections with billAmount > 0 are payable
-  const payableConnections = userConnections.filter(c => c.billAmount > 0);
-  const payableIds = payableConnections.map(c => c.id);
+  const payableConnections = userConnections.filter((c: any) => c.billAmount > 0);
+  const payableIds = payableConnections.map((c: any) => c.id);
 
   // Calculate totalDue and pendingBillsCount from userConnections
   const totalDue = userConnections.reduce(
-    (sum, conn) => sum + (conn.currentDemand || conn.billAmount || conn.dueAmount || 0),
+    (sum: number, conn: any) => sum + (conn.currentDemand || conn.billAmount || conn.dueAmount || 0),
     0
   );
   const pendingBillsCount = userConnections.filter(
-    (conn) => (conn.currentDemand || conn.billAmount || conn.dueAmount || 0) > 0
+    (conn: any) => (conn.currentDemand || conn.billAmount || conn.dueAmount || 0) > 0
   ).length;
-  const totalConsumption = userConnections.reduce((sum, conn) => sum + (conn.consumption || 0), 0);
+  const totalConsumption = userConnections.reduce((sum: number, conn: any) => sum + (conn.consumption || 0), 0);
 
   // Select all logic: by default, select all payable connections on mount
   useEffect(() => {
@@ -292,8 +295,8 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
   };
 
   // Payment logic for demonstration
-  const totalSelectedAmount = selectedConnections.reduce((sum, id) => {
-    const conn = userConnections.find((c) => c.id === id);
+  const totalSelectedAmount = selectedConnections.reduce((sum: number, id: string) => {
+    const conn = userConnections.find((c: any) => c.id === id);
     return sum + (conn?.currentDemand || 0);
   }, 0);
 
@@ -314,13 +317,13 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
       label: "Track Status",
       icon: Activity,
       color: "from-blue-500 to-blue-500",
-      action: () => { }, // Add your handler
+      action: () => setShowTrackStatusDrawer(true),
     },
     {
       label: "Raise Complaints",
       icon: MessageSquare,
       color: "from-blue-500 to-blue-500",
-      action: () => { }, // Add your handler
+      action: () => setShowNewGrievanceForm(true),
     },
   ];
 
@@ -613,7 +616,7 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
                     <p className="text-xs opacity-90">{selectedConnections.length} connection(s) selected</p>
                     <p className="text-xl font-bold">
                       ₹{selectedConnections.reduce((sum, id) => {
-                        const conn = userConnections.find((c) => c.id === id);
+                        const conn = userConnections.find((c: any) => c.id === id);
                         return sum + (conn?.currentDemand || conn?.billAmount || conn?.dueAmount || 0);
                       }, 0).toLocaleString()}
                     </p>
@@ -674,7 +677,7 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
                       <span className="text-gray-500">Select Connection</span>
                     ) : (
                       (() => {
-                        const selectedConn = userConnections.find(conn => conn.id === selectedUsageConnection);
+                        const selectedConn = userConnections.find((conn: any) => conn.id === selectedUsageConnection);
                         if (!selectedConn) return <span className="text-gray-500">Select Connection</span>;
                         return (
                           <span className="flex flex-col items-start">
@@ -687,7 +690,7 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
                   </SelectTrigger>
                   <SelectContent className="z-[9999] h-auto bg-white" position="popper" sideOffset={5}>
                     <SelectItem key="all" value="all">All Connections</SelectItem>
-                    {userConnections.map((conn) => (
+                    {userConnections.map((conn: any) => (
                       <SelectItem key={conn.id} value={conn.id}>
                         <div className="flex flex-col">
                           <span className="font-bold text-blue-900">{conn.consumerNo || conn.consumerNumber || conn.consumerID || conn.id}</span>
@@ -707,8 +710,8 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
                 </div>
                 <p className="text-xl font-bold text-blue-600">
                   {selectedUsageConnection === "all"
-                    ? userConnections.reduce((sum, conn) => sum + (conn.consumption || 0), 0)
-                    : userConnections.find(conn => conn.id === selectedUsageConnection)?.consumption || 0
+                    ? userConnections.reduce((sum: number, conn: any) => sum + (conn.consumption || 0), 0)
+                    : userConnections.find((conn: any) => conn.id === selectedUsageConnection)?.consumption || 0
                   } KL
                 </p>
                 <div className="flex items-center gap-1 mt-1">
@@ -723,8 +726,8 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
                 </div>
                 <p className="text-xl font-bold text-orange-600">
                   ₹{(selectedUsageConnection === "all"
-                    ? userConnections.reduce((sum, conn) => sum + (conn.billAmount || 0), 0)
-                    : userConnections.find(conn => conn.id === selectedUsageConnection)?.billAmount || 0
+                    ? userConnections.reduce((sum: number, conn: any) => sum + (conn.billAmount || 0), 0)
+                    : userConnections.find((conn: any) => conn.id === selectedUsageConnection)?.billAmount || 0
                   ).toLocaleString()}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
@@ -744,8 +747,8 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
                   { month: 'Dec', usage: 38, color: 'from-green-400 to-green-500' },
                   {
                     month: 'Jan', usage: selectedUsageConnection === "all"
-                      ? userConnections.reduce((sum, conn) => sum + (conn.consumption || 0), 0)
-                      : userConnections.find(conn => conn.id === selectedUsageConnection)?.consumption || 0
+                      ? userConnections.reduce((sum: number, conn: any) => sum + (conn.consumption || 0), 0)
+                      : userConnections.find((conn: any) => conn.id === selectedUsageConnection)?.consumption || 0
                     , color: 'from-emerald-400 to-emerald-500'
                   },
                 ].map((data, index) => (
@@ -879,6 +882,34 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
           onSubmitSuccess={() => setShowNewConnectionDialog(false)}
         />
       </Drawer>
+      {/* New Connection Dialog */}
+      <Dialog open={showNewConnectionDialog}>
+        <DialogContent className="max-w-4xl">
+          <NewConnectionFormContent
+            data-testid="new-connection-form"
+            user={user}
+            selectedProperty={user.allProperties.find((p: any) => p.propertyNumber === currentProperty)}
+            onBack={() => setShowNewConnectionDialog(false)}
+            onSubmitSuccess={() => setShowNewConnectionDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Track Status Drawer */}
+      <TrackStatus 
+        open={showTrackStatusDrawer}
+        onOpenChange={setShowTrackStatusDrawer}
+      />
+
+      {/* New Grievance Form */}
+      <NewGrievanceForm
+        open={showNewGrievanceForm}
+        onClose={() => setShowNewGrievanceForm(false)}
+        onSubmit={(data) => {
+          console.log("New grievance registered:", data);
+          setShowNewGrievanceForm(false);
+        }}
+      />
     </main>
   );
 }
