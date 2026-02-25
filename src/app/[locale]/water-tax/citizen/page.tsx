@@ -66,14 +66,21 @@ export default async function WaterTaxCitizenPage({
   if (session && session.citizenId && session.connections) {
     // Extract mobile number from lookup query if it's a mobile number
     const isMobileQuery = session.lookupQuery && /^\d{10}$/.test(session.lookupQuery.replace(/\D/g, '').slice(-10));
-    const mobileNo = isMobileQuery ? session.lookupQuery.replace(/\D/g, '').slice(-10) : null;
-    
+    let mobileNo = isMobileQuery ? session.lookupQuery.replace(/\D/g, '').slice(-10) : null;
+
+    // Fallback: Try to find a mobile number in the connections if lookup was not a mobile number
+    if (!mobileNo && session.connections && session.connections.length > 0) {
+      // Find first connection with a mobile number
+      const connWithMobile = session.connections.find((c: any) => c.mobileNo || c.mobile || c.phoneNumber);
+      mobileNo = connWithMobile?.mobileNo || connWithMobile?.mobile || connWithMobile?.phoneNumber || null;
+    }
+
     console.log('📱 Extracting mobile number:', {
       lookupQuery: session.lookupQuery,
       isMobileQuery,
       extractedMobile: mobileNo
     });
-    
+
     user = {
       citizenId: session.citizenId,
       mobileNo: mobileNo, // Add mobile number to user object

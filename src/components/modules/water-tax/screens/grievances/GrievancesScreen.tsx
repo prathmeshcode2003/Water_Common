@@ -44,6 +44,7 @@ interface GrievancesScreenProps {
     resolvedDate?: string;
     resolution?: string;
   }>;
+  user?: any;
 }
 
 // Helper functions
@@ -75,7 +76,7 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export function GrievancesScreen({ onNavigate, grievances: propGrievances }: GrievancesScreenProps) {
+export function GrievancesScreen({ onNavigate, grievances: propGrievances, user }: GrievancesScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewGrievance, setShowNewGrievance] = useState(false);
   const [showTrackDialog, setShowTrackDialog] = useState(false);
@@ -649,6 +650,7 @@ export function GrievancesScreen({ onNavigate, grievances: propGrievances }: Gri
         {/* New Grievance Form */}
         <NewGrievanceForm
           open={showNewGrievance}
+          user={user}
           onClose={() => setShowNewGrievance(false)}
           onSubmit={(data) => {
             console.log("New grievance registered:", data);

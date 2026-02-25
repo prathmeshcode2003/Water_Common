@@ -88,7 +88,7 @@ export function SharedWrapper({ screen, user }: SharedWrapperProps) {
         );
 
       case "grievances":
-        return <GrievancesScreen onNavigate={handleNavigate} />;
+        return <GrievancesScreen onNavigate={handleNavigate} user={user} />;
 
       case "passbook":
         if (!user) return <NoDataFallback screenName="Passbook" />;
