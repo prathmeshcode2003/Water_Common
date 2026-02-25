@@ -89,7 +89,7 @@ export function LandingHero({ stats, quickServices }: LandingHeroProps) {
     }));
 
     return (
-        <section className="relative z-10 pt-4 sm:pt-8 pb-0 px-4 sm:px-6 lg:px-8">
+        <section className="pt-4 sm:pt-8 pb-0 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20 items-center">
                     {/* Left Content */}

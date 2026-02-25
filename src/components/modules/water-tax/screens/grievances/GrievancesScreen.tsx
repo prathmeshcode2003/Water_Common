@@ -259,7 +259,7 @@ export function GrievancesScreen({ onNavigate, grievances: propGrievances }: Gri
           />
         </div>
 
-        <div className="relative z-10 w-full h-full flex flex-col px-3 sm:px-6 py-2">
+        <div className="w-full h-full flex flex-col px-3 sm:px-6 py-2">
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-2">
             <div>

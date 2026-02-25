@@ -487,7 +487,7 @@ export function LandingScreen({
 
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-8 pb-0 px-0">
+      <section className="pt-8 pb-0 px-0">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-20 items-center"> {/* Reduced gap-12 to gap-8 */}
             {/* Left Content */}
@@ -744,10 +744,10 @@ export function LandingScreen({
                   <motion.div
                     key={i}
                     className={`absolute w-24 h-24 bg-gradient-to-br ${i === 0
-                        ? "from-blue-300/40 to-cyan-300/40 -top-12 -right-12"
-                        : i === 1
-                          ? "from-purple-300/40 to-pink-300/40 -bottom-12 -left-12"
-                          : "from-green-300/40 to-emerald-300/40 top-1/2 -right-16"
+                      ? "from-blue-300/40 to-cyan-300/40 -top-12 -right-12"
+                      : i === 1
+                        ? "from-purple-300/40 to-pink-300/40 -bottom-12 -left-12"
+                        : "from-green-300/40 to-emerald-300/40 top-1/2 -right-16"
                       } rounded-full blur-2xl`}
                     animate={{
                       y: [0, -20, 0],
@@ -868,8 +868,8 @@ export function LandingScreen({
                         <div className="max-w-[75%]">
                           <div
                             className={`rounded-2xl px-4 py-2 shadow-md ${message.role === "user"
-                                ? "bg-gradient-to-br from-blue-600 to-cyan-600 text-white"
-                                : "bg-white text-gray-800 border-2 border-blue-100"
+                              ? "bg-gradient-to-br from-blue-600 to-cyan-600 text-white"
+                              : "bg-white text-gray-800 border-2 border-blue-100"
                               }`}
                           >
                             <p className="text-sm whitespace-pre-line">

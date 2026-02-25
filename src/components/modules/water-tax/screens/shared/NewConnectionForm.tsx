@@ -26,11 +26,11 @@ interface NewConnectionFormContentProps {
   selectedProperty?: any;
 }
 
-export function NewConnectionFormContent({ 
-  user, 
-  onBack, 
-  onSubmitSuccess, 
-  selectedProperty 
+export function NewConnectionFormContent({
+  user,
+  onBack,
+  onSubmitSuccess,
+  selectedProperty
 }: NewConnectionFormContentProps) {
   // Connection Details State
   const [category, setCategory] = useState('');
@@ -61,12 +61,12 @@ export function NewConnectionFormContent({
   const displayOwnerName = selectedConnection?.consumerNameEnglish || selectedConnection?.consumerName || user?.name || 'Citizen';
 
   // Document uploads state
-  const [documentUploads, setDocumentUploads] = useState<{ 
-    [key: string]: { file: File; status: string } 
+  const [documentUploads, setDocumentUploads] = useState<{
+    [key: string]: { file: File; status: string }
   }>({});
-  const [viewingDocument, setViewingDocument] = useState<{ 
-    name: string; 
-    file: File 
+  const [viewingDocument, setViewingDocument] = useState<{
+    name: string;
+    file: File
   } | null>(null);
 
   const handleSubmitForm = () => {
@@ -74,21 +74,21 @@ export function NewConnectionFormContent({
       toast.error('Please accept the declaration to proceed');
       return;
     }
-    
+
     if (!category || !type || !size) {
       toast.error('Please fill all required connection details');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     setTimeout(() => {
       const appNumber = 'WC-' + Math.random().toString(36).substr(2, 9).toUpperCase();
       setApplicationNumber(appNumber);
       setIsSubmitting(false);
       setShowSuccessDialog(true);
       toast.success('Application submitted successfully!');
-      
+
       if (onSubmitSuccess) {
         onSubmitSuccess(appNumber);
       }
@@ -114,7 +114,7 @@ export function NewConnectionFormContent({
 
   const handleDeleteDocument = (docId: string, docName: string) => {
     setDocumentUploads(prev => {
-      const newUploads = {...prev};
+      const newUploads = { ...prev };
       delete newUploads[docId];
       return newUploads;
     });
@@ -130,17 +130,15 @@ export function NewConnectionFormContent({
 
   return (
     <>
-      <div className="relative bg-white rounded-2xl border-2 border-purple-200/50 shadow-xl p-2.5">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/70 via-pink-50/30 to-blue-50/50 rounded-2xl pointer-events-none" />
-        
-        <div className="relative z-10 space-y-2.5">
+      <div className="space-y-4">
+        <div className="relative">
           {/* Property Details Section */}
           <div className="bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 rounded-xl p-2.5 shadow-lg">
             <div className="flex items-center gap-2 mb-1.5">
               <Building className="w-4 h-4 text-white" />
               <h3 className="text-xs font-bold text-white">Confirm Your Property Details</h3>
             </div>
-            
+
             <div className="bg-white rounded-lg p-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
                 <div className="flex flex-col gap-1">
@@ -162,7 +160,7 @@ export function NewConnectionFormContent({
                   </span>
                 </div>
               </div>
-              
+
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-gray-600 font-medium">Address:</span>
                 <span className="text-xs font-semibold text-gray-800 leading-tight">
@@ -180,7 +178,7 @@ export function NewConnectionFormContent({
               </div>
               <h3 className="text-sm font-bold text-cyan-900">Connection Details</h3>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-700 block">
@@ -257,7 +255,7 @@ export function NewConnectionFormContent({
                     {documents.map((doc, index) => {
                       const uploaded = documentUploads[doc.id];
                       const isUploaded = uploaded && uploaded.file;
-                      
+
                       return (
                         <tr key={doc.id} className="border-b border-purple-100 hover:bg-purple-50/30 transition-colors">
                           <td className="px-3 py-2.5 text-xs font-semibold text-gray-700">{index + 1}</td>
@@ -268,20 +266,18 @@ export function NewConnectionFormContent({
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              doc.type === 'Required' 
-                                ? 'bg-red-100 text-red-700 border border-red-300' 
-                                : 'bg-blue-100 text-blue-700 border border-blue-300'
-                            }`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${doc.type === 'Required'
+                              ? 'bg-red-100 text-red-700 border border-red-300'
+                              : 'bg-blue-100 text-blue-700 border border-blue-300'
+                              }`}>
                               {doc.type}
                             </span>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                              isUploaded
-                                ? 'bg-green-100 text-green-700 border border-green-300'
-                                : 'bg-gray-100 text-gray-700 border border-gray-300'
-                            }`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold ${isUploaded
+                              ? 'bg-green-100 text-green-700 border border-green-300'
+                              : 'bg-gray-100 text-gray-700 border border-gray-300'
+                              }`}>
                               {isUploaded ? '✓ Uploaded' : 'Not Uploaded'}
                             </span>
                           </td>
@@ -292,7 +288,7 @@ export function NewConnectionFormContent({
                                   <Button
                                     onClick={() => {
                                       if (uploaded.file) {
-                                        setViewingDocument({name: doc.name, file: uploaded.file});
+                                        setViewingDocument({ name: doc.name, file: uploaded.file });
                                       }
                                     }}
                                     className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px]"
@@ -338,7 +334,7 @@ export function NewConnectionFormContent({
                     className="mt-0.5"
                     id="declaration"
                   />
-                  <label 
+                  <label
                     htmlFor="declaration"
                     className="text-xs text-gray-800 cursor-pointer leading-relaxed font-medium"
                   >

@@ -254,7 +254,7 @@ export function PassbookScreen({ user, onNavigate }: PassbookScreenProps) {
           />
         </div>
 
-        <div className="relative z-10 w-full p-2 flex-1 flex flex-col overflow-hidden">
+        <div className="w-full p-2 flex-1 flex flex-col overflow-hidden">
           {/* PAGE HEADER */}
           <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm shadow-md rounded-xl border-2 border-blue-200 mb-1 px-3 py-2">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2">

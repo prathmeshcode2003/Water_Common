@@ -18,6 +18,8 @@ import {
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/common/Button";
 import { toast } from "sonner";
+import { Drawer } from "@/components/common/Drawer";
+import { NewConnectionFormContent } from "@/components/modules/water-tax/screens/shared/NewConnectionForm";
 
 interface DashboardMobileViewProps {
     user: any;
@@ -29,6 +31,7 @@ export function DashboardMobileView({ user, onNavigate }: DashboardMobileViewPro
         user?.selectedProperty || user?.propertyNumber || ""
     );
     const [selectedConnections, setSelectedConnections] = useState<string[]>([]);
+    const [showNewConnectionDialog, setShowNewConnectionDialog] = useState(false);
 
     // Auto-select property if only one exists
     useEffect(() => {
@@ -310,12 +313,33 @@ export function DashboardMobileView({ user, onNavigate }: DashboardMobileViewPro
 
                 {/* New Connection Button */}
                 <Button
-                    onClick={() => toast.info("Add new connection feature coming soon!")}
+                    onClick={() => setShowNewConnectionDialog(true)}
                     className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white h-12 shadow-lg"
                 >
                     <Plus className="w-5 h-5 mr-2" />
                     Add New Connection
                 </Button>
+
+                {/* New Connection Drawer */}
+                <Drawer
+                    open={showNewConnectionDialog}
+                    onClose={() => setShowNewConnectionDialog(false)}
+                    title={
+                        <div className="flex items-center gap-2 text-xl font-bold text-blue-700">
+                            <Building className="w-6 h-6" />
+                            New Water Connection
+                        </div>
+                    }
+                    width="xl"
+                >
+                    <NewConnectionFormContent
+                        data-testid="new-connection-form"
+                        user={user}
+                        selectedProperty={user.allProperties.find((p: any) => p.propertyNumber === currentProperty)}
+                        onBack={() => setShowNewConnectionDialog(false)}
+                        onSubmitSuccess={() => setShowNewConnectionDialog(false)}
+                    />
+                </Drawer>
             </div>
         </div>
     );

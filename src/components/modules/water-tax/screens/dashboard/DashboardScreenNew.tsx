@@ -35,7 +35,6 @@ import {
 import { clearCitizenSession } from "@/app/[locale]/water-tax/actions";
 import { useRouter } from "next/navigation";
 import { Drawer } from "@/components/common/Drawer";
-import { Dialog, DialogContent } from "@/components/common/Water.Citizen";
 import { NewConnectionFormContent } from "@/components/modules/water-tax/screens/shared/NewConnectionForm";
 import { TrackStatus } from "@/components/modules/water-tax/screens/shared/TrackStatus";
 import { NewGrievanceForm } from "@/components/modules/water-tax/screens/grievances/NewGrievanceForm";
@@ -334,7 +333,7 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
 
   // Main UI
   return (
-    <main className="relative z-10 px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
+    <main className="px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
       <motion.div
         key="dashboard"
         initial={{ opacity: 0, y: 20 }}
@@ -862,6 +861,16 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
       </div>
       */}
 
+      {/* New Grievance Form */}
+      <NewGrievanceForm
+        open={showNewGrievanceForm}
+        onClose={() => setShowNewGrievanceForm(false)}
+        onSubmit={(data) => {
+          console.log("New grievance registered:", data);
+          setShowNewGrievanceForm(false);
+        }}
+      />
+
       {/* New Connection Drawer */}
       <Drawer
         open={showNewConnectionDialog}
@@ -882,33 +891,10 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
           onSubmitSuccess={() => setShowNewConnectionDialog(false)}
         />
       </Drawer>
-      {/* New Connection Dialog */}
-      <Dialog open={showNewConnectionDialog}>
-        <DialogContent className="max-w-4xl">
-          <NewConnectionFormContent
-            data-testid="new-connection-form"
-            user={user}
-            selectedProperty={user.allProperties.find((p: any) => p.propertyNumber === currentProperty)}
-            onBack={() => setShowNewConnectionDialog(false)}
-            onSubmitSuccess={() => setShowNewConnectionDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
       {/* Track Status Drawer */}
-      <TrackStatus 
+      <TrackStatus
         open={showTrackStatusDrawer}
         onOpenChange={setShowTrackStatusDrawer}
-      />
-
-      {/* New Grievance Form */}
-      <NewGrievanceForm
-        open={showNewGrievanceForm}
-        onClose={() => setShowNewGrievanceForm(false)}
-        onSubmit={(data) => {
-          console.log("New grievance registered:", data);
-          setShowNewGrievanceForm(false);
-        }}
       />
     </main>
   );
