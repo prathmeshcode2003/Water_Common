@@ -138,8 +138,8 @@ export function CitizenPortalLayout({
                 <Droplets className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl text-white font-bold">{branding.portalName || "Panvel Municipal Corporation"}</h1>
-                <p className="text-sm text-white/90">{branding.corporationName || "Water Bill"}</p>
+                <h1 className="text-2xl text-white font-bold">{ "Panvel Municipal Corporation"}</h1>  {/*branding.portalName || "Panvel Municipal Corporation"*/}
+                <p className="text-sm text-white/90">{ "Water Bill"}</p> {/*branding.corporationName ||*/}
               </div>
             </div>
 

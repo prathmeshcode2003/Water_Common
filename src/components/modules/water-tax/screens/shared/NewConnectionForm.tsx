@@ -48,17 +48,34 @@ export function NewConnectionFormContent({
   console.log('NewConnectionForm - selectedProperty:', selectedProperty);
   console.log('NewConnectionForm - user.connections:', user?.connections);
 
-  // Get connection details for the selected property
-  const selectedConnection = user?.connections?.find(
-    (conn: any) => conn.propertyNumber === (selectedProperty?.propertyNumber || user?.propertyNumber)
-  );
+  // Get all connections
+  const connections = user?.connections || [];
+
+  // Get the property number from the selected property (passed from dashboard dropdown)
+  const selectedPropertyNo = selectedProperty?.propertyNumber || selectedProperty?.propertyNo || '';
+  
+  console.log('NewConnectionForm - selectedPropertyNo:', selectedPropertyNo);
+
+  // Find the connection that matches the selected property
+  // The selectedProperty.propertyNumber could be propertyNo or consumerID depending on what was available
+  const selectedConnection = connections.find(
+    (conn: any) => {
+      const propNoStr = selectedPropertyNo?.toString();
+      // Match by propertyNo, propertyNumber, or consumerID
+      return conn.propertyNo?.toString() === propNoStr || 
+             conn.propertyNumber?.toString() === propNoStr ||
+             conn.consumerID?.toString() === propNoStr ||
+             conn.consumerNo?.toString() === propNoStr;
+    }
+  ) || (connections.length > 0 ? connections[0] : null); // Fallback to first connection if no match
 
   console.log('NewConnectionForm - selectedConnection:', selectedConnection);
 
-  // Determine property number and address with proper fallbacks
-  const displayPropertyNo = selectedProperty?.propertyNumber || selectedConnection?.propertyNumber || user?.propertyNumber || 'N/A';
-  const displayAddress = selectedProperty?.address || selectedConnection?.addressEnglish || selectedConnection?.address || 'N/A';
-  const displayOwnerName = selectedConnection?.consumerNameEnglish || selectedConnection?.consumerName || user?.name || 'Citizen';
+  // Display data from the matched connection (using API field names)
+  const displayPropertyNo = selectedConnection?.propertyNo || selectedConnection?.propertyNumber || selectedPropertyNo || 'N/A';
+  const displayAddress = selectedConnection?.addressEnglish || selectedConnection?.address || selectedConnection?.areaName || selectedConnection?.subAreaName || 'N/A';
+  const displayOwnerName = selectedConnection?.consumerNameEnglish || selectedConnection?.consumerName || selectedConnection?.consumerTitleEnglish || selectedConnection?.consumerTitle || 'N/A';
+  const displayMobile = selectedConnection?.mobileNo || user?.mobileNo || 'N/A';
 
   // Document uploads state
   const [documentUploads, setDocumentUploads] = useState<{
@@ -131,7 +148,7 @@ export function NewConnectionFormContent({
   return (
     <>
       <div className="space-y-4">
-        <div className="relative">
+        <div className="relative p-3">
           {/* Property Details Section */}
           <div className="bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 rounded-xl p-2.5 shadow-lg">
             <div className="flex items-center gap-2 mb-1.5">
@@ -150,13 +167,13 @@ export function NewConnectionFormContent({
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-gray-600 font-medium">Owner Name:</span>
                   <span className="text-xs font-semibold text-gray-800">
-                    {displayOwnerName}
+                     {displayOwnerName}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-gray-600 font-medium">Mobile:</span>
                   <span className="text-xs font-semibold text-gray-800">
-                    {user?.mobile || 'N/A'}
+                    {displayMobile}
                   </span>
                 </div>
               </div>

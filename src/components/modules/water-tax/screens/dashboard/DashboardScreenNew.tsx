@@ -407,9 +407,9 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
         </Card>
 
         {/* News Marquee Section - Now visible on all screens */}
-        <Card className="flex-1 min-w-0 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 border-2 border-blue-300 shadow-md overflow-hidden p-0 flex items-center h-14 relative z-10">
+        <Card className="flex-1 min-w-0 bg-transparent border-0 shadow-none overflow-hidden p-0 flex items-center h-14 relative z-10">
           <div className="flex items-center gap-3 w-full px-4 h-full">
-            <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
               <Megaphone className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 overflow-hidden">
@@ -423,63 +423,63 @@ export function DashboardScreen({ user, onLogout, onNavigate }: DashboardProps) 
               >
                 {/* Item 1 */}
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     🎉 Free Meter Installation - Starting January 2026
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
-                <span className="text-white/40 text-lg">•</span>
+                <span className="text-cyan-400 text-lg">•</span>
                 {/* Item 2 */}
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     💧 Rainwater Harvesting - Subsidy up to ₹10,000
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
-                <span className="text-white/40 text-lg">•</span>
+                <span className="text-cyan-400 text-lg">•</span>
                 {/* Item 3 */}
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     💳 Digital Payments Bonus - Cashback on online bills
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
-                <span className="text-white/40 text-lg">•</span>
+                <span className="text-cyan-400 text-lg">•</span>
                 {/* Item 4 */}
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     🏠 Low-Income Housing - 50% connection fee waiver
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
                 {/* Repeat items for seamless loop */}
-                <span className="text-white/40 text-lg">•</span>
+                <span className="text-cyan-400 text-lg">•</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     🎉 Free Meter Installation - Starting January 2026
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
-                <span className="text-white/40 text-lg">•</span>
+                <span className="text-cyan-400 text-lg">•</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     💧 Rainwater Harvesting - Subsidy up to ₹10,000
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
-                <span className="text-white/40 text-lg">•</span>
+                <span className="text-cyan-400 text-lg">•</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     💳 Digital Payments Bonus - Cashback on online bills
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
-                <span className="text-white/40 text-lg">•</span>
+                <span className="text-cyan-400 text-lg">•</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-sm font-bold">
                     🏠 Low-Income Housing - 50% connection fee waiver
                   </span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">New</Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-[10px] px-2 py-0.5 shadow-sm">New</Badge>
                 </div>
               </div>
               {/* Add marquee keyframes to global CSS if not present */}

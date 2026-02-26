@@ -517,13 +517,13 @@ export function TrackStatus({ open, onOpenChange, initialId = '' }: TrackStatusP
               </div>
 
               {/* Sample IDs */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="bg-blue-50  border border-blue-200 rounded-lg p-3">
                 <p className="text-xs text-blue-800 font-medium mb-2">Sample IDs for testing:</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap  gap-2">
                   {['APP-2025-001', 'APP-2025-002', 'WNC-2025-180652', 'WNC-2025-180651', 'GRV-2025-023', 'GRV-2025-018'].map((id) => (
                     <Badge
                       key={id}
-                      className="cursor-pointer bg-blue-600 hover:bg-blue-700"
+                      className="cursor-pointer text-white bg-blue-600 hover:bg-blue-700"
                       onClick={() => {
                         setTrackingId(id);
                         setTimeout(() => handleSearch(), 100);
